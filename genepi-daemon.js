@@ -50,13 +50,39 @@ console.log("\n");
     leave('ERROR: %s not defined in config file', item);
 });
 
+/* refaire
 ['sender', 'receiver'].forEach( (hardware) => {
   Object.keys(config.plugin).forEach( (name) => {
     if ((typeof config.plugin[name][hardware] !== 'undefined') && (typeof config[hardware][config.plugin[name][hardware]] !== 'number'))
       leave('Bad %s: %s for plugin %s', hardware, config.plugin[name][hardware], name);
   });
 });
+*/
 
+//////////////////////////////  Init Hardwares        //////////////////////////////
+
+
+fs.readdirSync('./hardware/').forEach( (file) => {
+  console.log(file);
+
+});
+
+
+
+//////////////////////////////  Init Protocols        //////////////////////////////
+
+fs.readdirSync('./protocol/').forEach( (file) => {
+  let proto = false;
+
+  if (proto = /genepi-proto-(.*)\.js/.exec(file) ) {
+    console.log('Adding protocol: %s', proto[1]);
+  }
+});
+
+var proto = new (require('./protocol/genepi-proto-HomeEasy.js'))();
+console.dir(proto.getCapabilities());
+
+leave();
 
 //////////////////////////////  Starting HTTP socket  //////////////////////////////
 const http = require('http');
@@ -74,7 +100,7 @@ console.log('RPC call: method send with param %s', JSON.stringify(params));
       if (typeof (params.protoco) === 'undefined') {
 //        throw 'method send error: no protocol';
       }
-//TODO tarray proto
+//TODO array proto
 //TODO : Daemon response: {"jsonrpc":"2.0","id":1,"error":{"message":"Internal error","code":-32603,"data":{"message":"Internal error","code":-32603,"data":"send method error method send error: no protocol"}}}
 
 //        let proto = require('./proto/genepi-proto-' + params.protocol);

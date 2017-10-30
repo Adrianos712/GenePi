@@ -1,0 +1,34 @@
+{
+  "name": "genepi",
+  "version": "1.0.0",
+  "description": "Home automation daemon to handle different hardwares and protocols using API",
+  "main": "genepi-daemon.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://cabalou@github.com/cabalou/genepi.git"
+  },
+  "keywords": [
+    "GPIO",
+    "Home",
+    "Automation",
+    "Raspberry",
+    "Pi",
+    "HomeEasy",
+    "SomFy"
+  ],
+  "author": "Adrien Caillard",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cabalou/genepi/issues"
+  },
+  "homepage": "https://github.com/cabalou/genepi#readme",
+  "dependencies": {
+    "argparse": "^1.0.9",
+    "jsonrpc-lite": "^1.3.0",
+    "leave": "^1.0.1",
+    "uws": "^8.14.1"
+  }
+}
