@@ -1,0 +1,23 @@
+{
+    "daemon": {
+        "address": "127.0.0.1",
+        "port": "8080"
+    },
+    "plugin": {
+        "HomeEasy": {
+          "sender": "433.92",
+          "receiver": "433.92"
+        },
+        "Somfy": {
+          "sender": "433.42",
+          "receiver": "433.92"
+        }
+     },
+     "sender": {
+        "433.92": 2,
+        "433.42": 3
+     },
+     "receiver": {
+        "433.92": 1
+     }
+}
