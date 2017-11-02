@@ -5,8 +5,8 @@ const genepiProto = require('./genepi-proto.js');
 
 class HomeEasy extends genepiProto {
 
-  constructor (param) {
-    super();
+  constructor (GPIOemitter) {
+    super(sender, GPIOemitter);
 
     this.protoTree = {
         "switch": {
@@ -51,24 +51,57 @@ class HomeEasy extends genepiProto {
             }
         }
     };
-  }
 
-  getAddr() {
-    return this.address;
-  }
-
+  } // constructor
 
 }
 
 
 class sender {
-  constructor (param) {
+  constructor (GPIOemitter, param) {
+    this.GPIOemitter = GPIOemitter;
+
+    this.type = param.type;
+    this.ID = param.ID;
+    this.unit = (typeof (param.unit) !== 'undefined') ? param.unit : 0;
+
+    switch (param.cmd) {
+      case 'All on':
+        this.all = 1;
+        this.state = 1;
+        break;
+
+      case 'All off':
+        this.all = 1;
+        this.state = 0;
+        break;
+
+      case 'Toggle':
+        this.all = 0;
+        this.state = param.value;
+        break;
+
+      case 'Dim':
+        this.all = 0;
+        this.dimLevel = param.value;
+        this.state = (this.dimLevel) ? 1 : 0;
+        break;
+    }
+
+
+console.log('sender value:');
+console.dir(this);
+
   }
 
+  toFrame() {
+  }
+
+  result() {
+  }
   
 }
 
 
-HomeEasy.sender = sender;
 module.exports = HomeEasy;
 

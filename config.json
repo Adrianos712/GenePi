@@ -3,12 +3,12 @@
         "address": "127.0.0.1",
         "port": "8080"
     },
-    "plugin": {
+    "protocol": {
         "HomeEasy": {
           "sender": "433.92",
           "receiver": "433.92"
         },
-        "Somfy": {
+        "SomFy": {
           "sender": "433.42",
           "receiver": "433.92"
         }
