@@ -32,8 +32,8 @@ class SomFy extends genepiProto {
                     "action": "button"
                 },
                 "Slider": {
-                    "action": "[0-9]",
-                    "state": "[0-9]"
+                    "action": "[0-99]",
+                    "state": "[0-99]"
                 }
             }
         }

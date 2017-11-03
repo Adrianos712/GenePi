@@ -99,6 +99,7 @@ fs.readdirSync('./protocol/').forEach( (file) => {
 const rpcMethod = {
   'check': () => 'OK',
   'capabilities': (params) => {
+console.log('RPC call: method capabilities');
     let capa = {};
     Object.keys(protoTable).forEach( (proto) => {
       capa[proto] = protoTable[proto].getCapabilities();
@@ -116,10 +117,10 @@ console.log('RPC call: method send with param %s', JSON.stringify(params));
         throw ('protocol unknown ' + params.protocol);
       }
 
-      protoTable[params.protocol].send(params);
+      return protoTable[params.protocol].send(params);
 
 
-      return 'OK';
+//      return 'OK';
 //        return {"protocol":"SomFy","type":"shutter","param":{"address":"111111"},"rolling":{"rollingcode":params.rollingcode++,"rollingkey":params.rollingkey++},"cmd":{"Slider":{"state":params.value}}};
 
     } catch (error) {

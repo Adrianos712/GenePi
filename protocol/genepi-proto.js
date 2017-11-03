@@ -46,8 +46,8 @@ class genepiProto {
       }
     });
 
-//TODO
-    return new this.childSender(this.hardSender, param);
+//TODO: delete obj
+    return new this.childSender(this.hardSender, param).res;
   }
 
 
