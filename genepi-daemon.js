@@ -124,6 +124,7 @@ console.log('RPC call: method send with param %s', JSON.stringify(params));
 //        return {"protocol":"SomFy","type":"shutter","param":{"address":"111111"},"rolling":{"rollingcode":params.rollingcode++,"rollingkey":params.rollingkey++},"cmd":{"Slider":{"state":params.value}}};
 
     } catch (error) {
+console.log(error);
       throw 'send method error: ' + error;
     }
   },

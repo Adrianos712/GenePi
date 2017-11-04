@@ -65,25 +65,26 @@ class sender {
   constructor (GPIOemitter, param) {
     this.GPIOemitter = GPIOemitter;
 
-    this.frame = {
-        "type": param.type,
-        "ID":   param.ID,
-        "unit": (typeof (param.unit) !== 'undefined') ? param.unit : 0
+    this.data = {
+        "protocol": param.protocol,
+        "type":     param.type,
+        "ID":       param.ID,
+        "unit":     (typeof (param.unit) !== 'undefined') ? param.unit : 0
     };
 
     this.res = {
         "protocol": param.protocol,
-        "type":     this.frame.type,
+        "type":     param.type,
         "param": {
-            "ID":   this.frame.ID
+            "ID":   this.data.ID
         },
         "cmd": {}
     };
 
     switch (param.cmd) {
       case 'All on':
-        this.frame.all = 1;
-        this.frame.state = 1;
+        this.data.all = 1;
+        this.data.state = 1;
 
         this.res.cmd.Power = {
             "state": 1
@@ -91,8 +92,8 @@ class sender {
         break;
 
       case 'All off':
-        this.frame.all = 1;
-        this.frame.state = 0;
+        this.data.all = 1;
+        this.data.state = 0;
 
         this.res.cmd.Power = {
             "state": 0
@@ -100,46 +101,46 @@ class sender {
         break;
 
       case 'Power':
-        this.frame.all = 0;
-        this.frame.state = param.value;
+        this.data.all = 0;
+        this.data.state = param.value;
 
         this.res.cmd.Power = {
-            "unit": this.frame.unit,
-            "state": this.frame.state
+            "unit": this.data.unit,
+            "state": this.data.state
         };
         break;
 
       case 'Dim':
-        this.frame.all = 0;
-        this.frame.dimLevel = param.value;
-        this.frame.state = (this.frame.dimLevel) ? 1 : 0;
+        this.data.all = 0;
+        this.data.dimLevel = param.value;
+        this.data.state = (this.data.dimLevel) ? 1 : 0;
 
         this.res.cmd = {
           "Power": {
-            "unit": this.frame.unit,
-            "state": this.frame.state
+            "unit": this.data.unit,
+            "state": this.data.state
           },
           "Dim": {
-            "unit": this.frame.unit,
-            "state": this.frame.dimLevel
+            "unit": this.data.unit,
+            "state": this.data.dimLevel
           }
         };
         break;
 
       case 'Dim all':
-        this.frame.all = 1;
-        this.frame.dimLevel = param.value;
-        this.frame.state = (this.frame.dimLevel) ? 1 : 0;
+        this.data.all = 1;
+        this.data.dimLevel = param.value;
+        this.data.state = (this.data.dimLevel) ? 1 : 0;
 
         this.res.cmd = {
           "Power": {
-            "state": this.frame.state
+            "state": this.data.state
           },
           "Dim": {
-            "state": this.frame.dimLevel
+            "state": this.data.dimLevel
           },
           "Dim all": {
-            "state": this.frame.dimLevel
+            "state": this.data.dimLevel
           }
         };
         break;
@@ -149,11 +150,96 @@ class sender {
 console.log('sender value:');
 console.log(JSON.stringify(this, null, 2));
 
+let frame = new HEframe(this.data).frame;
+
+console.log('frame: len ' + frame.length + '\n' + frame.join(' '));
+
   }
 
-  toFrame() {
+}
+
+//////////////// HomeEasy //////////////////////
+const hardPulse  = 10000;
+const softPulse  =  2800;
+const shortPulse =   300;
+const longPulse  =  1340;
+const footPulse  = 10000;
+
+// add leadings 0 to a string
+String.prototype.add0 = function (len) {
+  let ret = '';
+  for (let i = this.length ; i < len ; ++i) { ret+= '0'; }
+  return ret + this;
+}
+
+class HEframe {
+  constructor(param) {
+
+    this.type     = param.type     || 'switch';
+    this.ID       = param.ID       || 0;
+    this.unit     = param.unit     || 0;
+    this.all      = param.all      || 0;
+    this.state    = param.state    || 0;
+    this.dimLevel = param.dimLevel || 0;
+    this.frame    = param.frame    || [];
+
+    if (typeof(param.frame) === 'undefined') {
+      this.paramToFrame();
+    } else {
+      this.frameToParam();
+    }
   }
 
+  frameToParam() {
+  }
+
+  paramToFrame() {
+    // Header
+    this.frame.push(hardPulse);  // 1
+    this.frame.push(shortPulse); // 0
+    this.frame.push(softPulse);  // 1
+
+    this.addToFrame(this.ID,    26);
+    this.addToFrame(this.all,   1);
+    this.addToFrame(this.state, 1);
+    this.addToFrame(this.unit,  4);
+    if (this.type === 'dimmer') {
+      this.addToFrame(this.dimLevel,  4);
+    }
+
+    // Footer
+    this.frame.push(shortPulse); // 0
+    this.frame.push(footPulse);  // 1
+  }
+
+
+
+  // private properties
+
+  send0() {
+    this.frame.push(shortPulse); // 0
+    this.frame.push(shortPulse); // 1
+    this.frame.push(shortPulse); // 0
+    this.frame.push(longPulse);  // 1
+  }
+
+  send1() {
+    this.frame.push(shortPulse); // 0
+    this.frame.push(longPulse);  // 1
+    this.frame.push(shortPulse); // 0
+    this.frame.push(shortPulse); // 1 
+  }
+
+  addToFrame(value, len) {
+    let binary = value.toString(2).add0(len);
+    for (let i=0; i < binary.length ; i++) {
+      if(binary[i]) {
+        this.send1();
+      } else {
+        this.send0();
+      }
+    }
+  }
 }
 
 
