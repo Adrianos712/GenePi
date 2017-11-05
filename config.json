@@ -5,19 +5,29 @@
     },
     "protocol": {
         "HomeEasy": {
-          "sender": "433.92",
-          "receiver": "433.92"
+            "sender": "433.92",
+            "receiver": "433.92"
         },
         "SomFy": {
-          "sender": "433.42",
-          "receiver": "433.92"
+            "sender": "433.42",
+            "receiver": "433.92"
         }
-     },
-     "sender": {
-        "433.92": 2,
-        "433.42": 3
-     },
-     "receiver": {
-        "433.92": 1
+    },
+    "hardware": {
+        "GPIO": {
+            "sender": {
+                "433.92": {
+                    "pin": 13
+                },
+                "433.42": {
+                    "pin": 11
+                }
+             },
+             "receiver": {
+                "433.92": {
+                    "pin": 15
+                }
+             }
+         }
      }
 }

@@ -35,6 +35,11 @@ class sender {
   constructor (GPIOemitter, param) {
     this.GPIOemitter = GPIOemitter;
 
+    this.data = {
+        "protocol": param.protocol,
+        "type":     param.type,
+    };
+
     this.res = {
         "protocol": param.protocol,
         "type":     param.type,

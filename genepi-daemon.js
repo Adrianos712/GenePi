@@ -45,33 +45,61 @@ try {
 console.dir(config);
 console.log("\n");
 
-['config.daemon', 'config.daemon.port', 'config.protocol', 'config.sender', 'config.receiver'].forEach(function (item) {
+['config.daemon', 'config.daemon.port', 'config.protocol', 'config.hardware'].forEach(function (item) {
   if (typeof eval(item) === 'undefined' )
     leave('ERROR: %s not defined in config file', item);
 });
 
 
+var hwTable    = {};
 var protoTable = {};
+
+// clear on exit
+process.on('SIGINT', function () {
+  console.log('Exit\nClearing hardwares');
+  Object.keys(hwTable).forEach( (hwName) => {
+    hwTable[hwName].clearOnExit();
+  });
+  process.exit();
+});
+
+//leave();
 
 // creating plugin table
 try {
-  Object.keys(config.protocol).forEach( (protoName) => {
+  // parsing hardwares
+  Object.keys(config.hardware).forEach( (hwName) => {
+    hwTable[hwName] = new (require('./hardware/genepi-hard-' + hwName + '.js'))();
 
+    // parsing senders
+    Object.keys(config.hardware[hwName].sender).forEach( (senderName) => {
+      hwTable[hwName].addSender(senderName, config.hardware[hwName].sender[senderName]);
+    });
+
+    // parsing receivers
+
+  });
+
+  // parsing protocols
+  Object.keys(config.protocol).forEach( (protoName) => {
 //console.log('Parsing protocol: %s', protoName);
 
-    protoTable[protoName] = new (require('./protocol/genepi-proto-' + protoName + '.js'))();
-  
+//TODO: sender
+    protoTable[protoName] = new (require('./protocol/genepi-proto-' + protoName + '.js'))(hwTable.GPIO.senderList['433.92']);
   });
+
 } catch (error) {
 console.log(error);
   leave('ERROR: failed parsing config file: %s', error);
 }
 
-//console.dir(protoTable);
+console.log(JSON.stringify(hwTable, true, 2));
+console.log(JSON.stringify(protoTable, true, 2));
 
+hwTable.GPIO.senderList['433.92'].send();
 
-//TODO : Daemon response: {"jsonrpc":"2.0","id":1,"error":{"message":"Internal error","code":-32603,"data":{"message":"Internal error","code":-32603,"data":"send method error method send error: no protocol"}}}
-
+process.emit('SIGINT');
+//leave();
 
 /* refaire
 ['sender', 'receiver'].forEach( (hardware) => {

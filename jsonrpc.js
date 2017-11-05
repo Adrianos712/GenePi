@@ -86,7 +86,11 @@ console.log(' [%s]received param: %s', jsonMsg.payload.id, JSON.stringify(jsonMs
 
     } else if (jsonMsg.type === 'error') {
       // RPC error response - calling promise reject
-      conn.rpcEvent.emit('callErr' + jsonMsg.payload.id, jsonMsg.payload.error);
+      if (typeof (jsonMsg.payload.error.data) !== 'undefined') {
+        conn.rpcEvent.emit('callErr' + jsonMsg.payload.id, jsonMsg.payload.error.data);
+      } else {
+        conn.rpcEvent.emit('callErr' + jsonMsg.payload.id, jsonMsg.payload.error.message);
+      }
       conn.rpcEvent.removeAllListeners('callOK' + jsonMsg.payload.id);
 console.log(' [%s]received error: %s', jsonMsg.payload.id, jsonMsg.payload.error);
 
