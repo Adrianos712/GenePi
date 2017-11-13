@@ -96,9 +96,8 @@ console.log(error);
 console.log(JSON.stringify(hwTable, true, 2));
 console.log(JSON.stringify(protoTable, true, 2));
 
-hwTable.GPIO.senderList['433.92'].send();
+//hwTable.GPIO.senderList['433.92'].send();
 
-process.emit('SIGINT');
 //leave();
 
 /* refaire

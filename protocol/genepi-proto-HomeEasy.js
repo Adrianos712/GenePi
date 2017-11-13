@@ -162,7 +162,7 @@ console.log(JSON.stringify(this, null, 2));
 const hardPulse  = 10000;
 const softPulse  =  2800;
 const shortPulse =   300;
-const longPulse  =  1340;
+const longPulse  =  1280;
 const footPulse  = 10000;
 
 // add leadings 0 to a string
@@ -195,9 +195,10 @@ class HEframe {
 
   paramToFrame() {
     // Header
-    this.frame.push(hardPulse);  // 1
-    this.frame.push(shortPulse); // 0
-    this.frame.push(softPulse);  // 1
+    this.frame.push(shortPulse); // 1
+    this.frame.push(hardPulse);  // 0
+    this.frame.push(shortPulse); // 1
+    this.frame.push(softPulse);  // 0
 
     this.addToFrame(this.ID,    26);
     this.addToFrame(this.all,   1);
@@ -208,8 +209,9 @@ class HEframe {
     }
 
     // Footer
-    this.frame.push(shortPulse); // 0
-    this.frame.push(footPulse);  // 1
+    this.frame.push(shortPulse); // 1
+    this.frame.push(footPulse);  // 0
+    this.frame.push(shortPulse); // 1
   }
 
 
@@ -217,23 +219,23 @@ class HEframe {
   // private properties
 
   send0() {
-    this.frame.push(shortPulse); // 0
     this.frame.push(shortPulse); // 1
     this.frame.push(shortPulse); // 0
-    this.frame.push(longPulse);  // 1
+    this.frame.push(shortPulse); // 1
+    this.frame.push(longPulse);  // 0
   }
 
   send1() {
-    this.frame.push(shortPulse); // 0
-    this.frame.push(longPulse);  // 1
-    this.frame.push(shortPulse); // 0
-    this.frame.push(shortPulse); // 1 
+    this.frame.push(shortPulse); // 1
+    this.frame.push(longPulse);  // 0
+    this.frame.push(shortPulse); // 1
+    this.frame.push(shortPulse); // 0 
   }
 
   addToFrame(value, len) {
     let binary = value.toString(2).add0(len);
     for (let i=0; i < binary.length ; i++) {
-      if(binary[i]) {
+      if(binary[i] == 1) {
         this.send1();
       } else {
         this.send0();
