@@ -146,9 +146,10 @@ class sender {
         break;
     }
 
-
+/*
 console.log('sender value:');
 console.log(JSON.stringify(this, null, 2));
+*/
 
     let frame = new HEframe(this.data).frame;
     GPIOemitter.send(frame);

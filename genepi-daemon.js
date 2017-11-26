@@ -93,12 +93,9 @@ console.log(error);
   leave('ERROR: failed parsing config file: %s', error);
 }
 
-console.log(JSON.stringify(hwTable, true, 2));
-console.log(JSON.stringify(protoTable, true, 2));
+//console.log(JSON.stringify(hwTable, true, 2));
+//console.log(JSON.stringify(protoTable, true, 2));
 
-//hwTable.GPIO.senderList['433.92'].send();
-
-//leave();
 
 /* refaire
 ['sender', 'receiver'].forEach( (hardware) => {

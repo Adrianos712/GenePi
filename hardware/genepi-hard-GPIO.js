@@ -2,8 +2,9 @@
 
 const sleep    = require('sleep');
 const onoff    = require('onoff').Gpio;
-const genepiHW = require('./genepi-hard.js');
 
+// parent class
+const genepiHW = require('./genepi-hard.js');
 
 
 class GPIO extends genepiHW {
@@ -29,6 +30,12 @@ console.log('GPIO: closing pin %s', pin);
   }
 }
 
+var prout = function (frame) {
+  var test = GPIO.pinList;
+  require('sleep').sleep(5);
+  console.log('thread msg: %s', JSON.stringify(frame));
+  console.log('test: %s', JSON.stringify(test));
+}
 
 class GPIOsender {
 
@@ -45,28 +52,23 @@ class GPIOsender {
 
 
   send(frame) {
-if (typeof (this.pouet) === 'undefined') {
-this.pouet = "";
-sleep.sleep(5);
-return;
-}else{
-return "OK";
-}
+    for (let repeat = 1; repeat <= 3; repeat++) {
+//console.log(JSON.stringify(frame));
 
+      let port = true;
+      for (let val=0; val < frame.length; val++) {
 
-    let port = true;
-    for (let val=0; val < frame.length; val++) {
+        this.txPin.writeSync((port) ? 1 : 0);
+        port = !port;
 
-      this.txPin.writeSync((port) ? 1 : 0);
-      port = !port;
+        sleep.usleep(frame[val]-100);
+      }
 
-      sleep.usleep(frame[val]-100);
+      // finished: back to LOW
+      this.txPin.writeSync(0);
+      sleep.usleep(10000);
     }
-
-    // finished: back to LOW
-    this.txPin.writeSync(0);
   }
-
 }
 
 //TODO: add invert on recv
