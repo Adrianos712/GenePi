@@ -5,8 +5,11 @@ const genepiProto = require('./genepi-proto.js');
 
 class HomeEasy extends genepiProto {
 
-  constructor (GPIOemitter) {
-    super(sender, GPIOemitter);
+  constructor (GPIOemitter = null, GPIOreceiver = null) {
+    super();
+
+    this.GPIOemitter  = GPIOemitter;
+    this.GPIOreceiver = GPIOreceiver;
 
     this.protoTree = {
         "switch": {
@@ -58,89 +61,90 @@ class HomeEasy extends genepiProto {
 
   } // constructor
 
-}
 
+  execCmd (param) {
 
-class sender {
-  constructor (GPIOemitter, param) {
-    this.GPIOemitter = GPIOemitter;
+    // check emitter type
+    if (typeof(this.GPIOemitter.send) !== 'function') {
+      throw 'Invalid GPIO emitter type';
+    }
 
-    this.data = {
+    let data = {
         "protocol": param.protocol,
         "type":     param.type,
         "ID":       param.ID,
         "unit":     (typeof (param.unit) !== 'undefined') ? param.unit : 0
     };
 
-    this.res = {
+    let res = {
         "protocol": param.protocol,
         "type":     param.type,
         "param": {
-            "ID":   this.data.ID
+            "ID":   data.ID
         },
         "cmd": {}
     };
 
     switch (param.cmd) {
       case 'All on':
-        this.data.all = 1;
-        this.data.state = 1;
+        data.all = 1;
+        data.state = 1;
 
-        this.res.cmd.Power = {
+        res.cmd.Power = {
             "state": 1
         };
         break;
 
       case 'All off':
-        this.data.all = 1;
-        this.data.state = 0;
+        data.all = 1;
+        data.state = 0;
 
-        this.res.cmd.Power = {
+        res.cmd.Power = {
             "state": 0
         };
         break;
 
       case 'Power':
-        this.data.all = 0;
-        this.data.state = param.value;
+        data.all = 0;
+        data.state = param.value;
 
-        this.res.cmd.Power = {
-            "unit": this.data.unit,
-            "state": this.data.state
+        res.cmd.Power = {
+            "unit": data.unit,
+            "state": data.state
         };
         break;
 
       case 'Dim':
-        this.data.all = 0;
-        this.data.dimLevel = param.value;
-        this.data.state = (this.data.dimLevel) ? 1 : 0;
+        data.all = 0;
+        data.dimLevel = param.value;
+        data.state = (data.dimLevel) ? 1 : 0;
 
-        this.res.cmd = {
+        res.cmd = {
           "Power": {
-            "unit": this.data.unit,
-            "state": this.data.state
+            "unit": data.unit,
+            "state": data.state
           },
           "Dim": {
-            "unit": this.data.unit,
-            "state": this.data.dimLevel
+            "unit": data.unit,
+            "state": data.dimLevel
           }
         };
         break;
 
       case 'Dim all':
-        this.data.all = 1;
-        this.data.dimLevel = param.value;
-        this.data.state = (this.data.dimLevel) ? 1 : 0;
+        data.all = 1;
+        data.dimLevel = param.value;
+        data.state = (data.dimLevel) ? 1 : 0;
 
-        this.res.cmd = {
+        res.cmd = {
           "Power": {
-            "state": this.data.state
+            "state": data.state
           },
           "Dim": {
-            "state": this.data.dimLevel
+            "state": data.dimLevel
           },
           "Dim all": {
-            "state": this.data.dimLevel
+            "state": data.dimLevel
           }
         };
         break;
@@ -151,13 +155,14 @@ console.log('sender value:');
 console.log(JSON.stringify(this, null, 2));
 */
 
-    let frame = new HEframe(this.data).frame;
-    GPIOemitter.send(frame);
+    let frame = new HEframe(data).frame;
+    this.GPIOemitter.send(frame);
 //console.log('frame: len ' + frame.length + '\n' + frame.join(' '));
 
+    return res;
   }
-
 }
+
 
 //////////////// HomeEasy //////////////////////
 const hardPulse  = 10000;

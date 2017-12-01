@@ -5,8 +5,11 @@ const genepiProto = require('./genepi-proto.js');
 
 class SomFy extends genepiProto {
 
-  constructor (GPIOemitter) {
-    super(sender, GPIOemitter);
+  constructor (GPIOemitter = null, GPIOreceiver = null) {
+    super();
+
+    this.GPIOemitter  = GPIOemitter;
+    this.GPIOreceiver = GPIOreceiver;
 
     this.protoTree = {
         "shutter": {
@@ -41,14 +44,9 @@ class SomFy extends genepiProto {
 
   } // constructor
 
-}
+  execCmd (param) {
 
-
-class sender {
-  constructor (GPIOemitter, param) {
-    this.GPIOemitter = GPIOemitter;
-
-    this.data = {
+    let data = {
         "protocol":    param.protocol,
         "type":        param.type,
         "address":     param.address,
@@ -57,11 +55,11 @@ class sender {
         "rollingkey":  param.rollingkey
     };
 
-    this.res = {
+    let res = {
         "protocol": param.protocol,
         "type":     param.type,
         "param": {
-            "ID":   this.data.ID
+            "address":     param.address
         },
         "rolling": {
             "rollingcode": (param.rollingcode + 1) % 65536,
@@ -72,39 +70,37 @@ class sender {
 
     switch (param.cmd) {
       case 'Up':
-        this.data.state = 2;
-        this.data.cmd   = 'up';
-        this.res.cmd.Slider = { "state": 99 };
+        data.state = 2;
+        data.cmd   = 'up';
+        res.cmd.Slider = { "state": 99 };
         break;
 
       case 'Down':
-        this.data.state = 4;
-        this.data.cmd   = 'down';
-        this.res.cmd.Slider = { "state": 0 };
+        data.state = 4;
+        data.cmd   = 'down';
+        res.cmd.Slider = { "state": 0 };
         break;
 
       case 'My':
-        this.data.state = 1;
-        this.data.cmd   = 'my';
-//TODO ?        this.res.cmd.Slider = { "state":  };
-        this.res.cmd.My = {};
+        data.state = 1;
+        data.cmd   = 'my';
+//TODO ?        res.cmd.Slider = { "state":  };
+//        res.cmd.My = {};
         break;
 
       case 'Prog':
-        this.data.state = 8;
-        this.data.cmd   = 'prog';
-        this.res.cmd.Prog = {};
+        data.state = 8;
+        data.cmd   = 'prog';
+        res.cmd.Prog = {};
         break;
 
       case 'Slider':
-//TODO        this.data.state = ;
-        this.res.cmd.Slider = { "state": param.value };
+//TODO        data.state = ;
+        res.cmd.Slider = { "state": param.value };
         break;
     }
 
-console.log('sender value:');
-console.log(JSON.stringify(this, null, 2));
-
+    return res;
   }
 
 }

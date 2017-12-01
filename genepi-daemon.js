@@ -3,6 +3,10 @@
 
 const leave = require('leave');
 
+//TODO
+process.env.NODE_LOGLEVEL = 6;
+require('./lib/log.js').init();
+
 //////////////////////////////  Parsing arguments  //////////////////////////////
 var ArgumentParser = require('argparse').ArgumentParser;
 var parser = new ArgumentParser({
@@ -42,8 +46,7 @@ try {
   leave('%s', err);
 }
 
-console.dir(config);
-console.log("\n");
+console.debug(config);
 
 ['config.daemon', 'config.daemon.port', 'config.protocol', 'config.hardware'].forEach(function (item) {
   if (typeof eval(item) === 'undefined' )
@@ -54,18 +57,19 @@ console.log("\n");
 var hwTable    = {};
 var protoTable = {};
 
-// clear on exit
+// clear hardware resources on exit
 process.on('SIGINT', function () {
   console.log('Exit\nClearing hardwares');
   Object.keys(hwTable).forEach( (hwName) => {
-    hwTable[hwName].clearOnExit();
+    if (typeof (hwTable[hwName].clearOnExit) === 'function') {
+      hwTable[hwName].clearOnExit();
+    }
   });
   process.exit();
 });
 
 //leave();
 
-// creating plugin table
 try {
   // parsing hardwares
   Object.keys(config.hardware).forEach( (hwName) => {
@@ -77,6 +81,9 @@ try {
     });
 
     // parsing receivers
+    Object.keys(config.hardware[hwName].receiver).forEach( (receiverName) => {
+      hwTable[hwName].addReceiver(receiverName, config.hardware[hwName].receiver[receiverName]);
+    });
 
   });
 
@@ -93,7 +100,7 @@ console.log(error);
   leave('ERROR: failed parsing config file: %s', error);
 }
 
-//console.log(JSON.stringify(hwTable, true, 2));
+//console.log(require('util').inspect(hwTable, {depth: null}));
 //console.log(JSON.stringify(protoTable, true, 2));
 
 
@@ -218,5 +225,6 @@ console.log('new client connection');
 server.listen(config.daemon.port, function listening() {
   console.log('Listening on %d', server.address().port);
 });
+
 
 

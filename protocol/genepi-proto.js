@@ -3,9 +3,7 @@
 
 class genepiProto {
 
-  constructor (childSender, hardSender = null) {
-    this.childSender = childSender;
-    this.hardSender = hardSender;
+  constructor () {
   }
 
 
@@ -15,6 +13,12 @@ class genepiProto {
 
   // send action on protocol
   send (param) {
+
+    // check emitter
+    if (this.GPIOemitter === null) {
+      throw 'No GPIO emitter defined';
+    }      
+
 
     // check if params exists
     ['type', 'cmd'].forEach( (attr) => {
@@ -47,7 +51,7 @@ class genepiProto {
     });
 
 //TODO: delete obj
-    return new this.childSender(this.hardSender, param).res;
+    return this.execCmd(param);
   }
 
 
