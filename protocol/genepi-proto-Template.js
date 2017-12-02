@@ -5,11 +5,11 @@ const genepiProto = require('./genepi-proto.js');
 
 class Template extends genepiProto {
 
-  constructor (GPIOemitter = null, GPIOreceiver = null) {
-    super();
+  constructor (emitter = null, receiver = null) {
+    super(emitter, receiver, 'GPIO');
 
-    this.GPIOemitter  = GPIOemitter;
-    this.GPIOreceiver = GPIOreceiver;
+    this.emitter  = emitter;
+    this.receiver = receiver;
 
     this.protoTree = {
         ">type": {
@@ -34,12 +34,6 @@ class Template extends genepiProto {
 
 
   execCmd (param) {
-
-    // check emitter type
-    if (typeof(this.GPIOemitter.send) !== 'function') {
-      throw 'Invalid GPIO emitter type';
-    }
-
 
     let data = {
         "protocol": param.protocol,

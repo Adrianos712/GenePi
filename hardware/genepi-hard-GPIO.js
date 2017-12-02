@@ -8,35 +8,67 @@ const genepiHW = require('./genepi-hard.js');
 
 class GPIO extends genepiHW {
 
-  constructor () {
-    super(GPIOsender, GPIOreceiver);
+  constructor (param) {
+    super(param);
 
-    // static pin list
-    GPIO.pinList = []
+    // init sender
+    if ( typeof(param.TXpin) !== 'undefined' ) {
+      this.sender = new GPIOsender ({"pin": param.TXpin});
+    }
+
+    // init receiver
+    if ( typeof(param.RXpin) !== 'undefined' ) {
+      this.receiver = new GPIOreceiver ({"pin": param.RXpin});
+    }
   }
 
 
-  // add pin to pin list
-  static addPin (pin) {
-//TODO: check if pin already used
-    GPIO.pinList.push(pin);
+  // get hardware configuration
+  getConfig () {
+    return GPIO.config;
+  }
+
+
+  // send frame
+  send (frame) {
+    if ( typeof(this.sender) === 'undefined' ) {
+      throw 'No GPIO sender hardware available';
+    }
+
+    this.sender.send(frame);
+  }
+
+
+  // listen frames
+  listen (cb) {
+    if ( typeof(this.receiver) === 'undefined' ) {
+      throw 'No GPIO receiver hardware available';
+    }
+
+    this.receiver.addListener(cb);
+
+//TODO add stream ?
   }
 
   // free ressources on exit
-  clearOnExit () {
-  }
-
+//  clearOnExit () {
+//  }
 }
+
+// hw configuration
+GPIO.config = {
+    "mandatory": {},
+    "optional": {
+        "TXpin": ["int", "GPIO pin for sending frames"],
+        "RXpin": ["int", "GPIO pin for receiving frames"]
+    }
+};
 
 
 class GPIOsender {
 
   constructor (param) {
-
     this.pin = param.pin;
-
-    // adding pin to list
-    GPIO.addPin(this.pin);
 
     // init sender process
     this.spawnSender();
@@ -46,16 +78,18 @@ class GPIOsender {
   spawnSender () {
     // fork process
     this.txPinProcess = fork(`${__dirname}/genepi-hard-GPIO-sender.js`, [this.pin]);
+    console.log('Spawned sender subprocess %s for pin %d', this.txPinProcess.pid, this.pin);
 
     // restart process on exit
     this.txPinProcess.on('exit', () => {
-console.log('process %s exited - restarting', this.txPinProcess.pid);
+      console.warn('Subprocess %s for pin %d exited - restarting', this.txPinProcess.pid, this.pin);
       this.spawnSender();
     });
   }
 
 
-  send(frame) {
+  // send frame to subprocess
+  send (frame) {
     this.txPinProcess.send(frame);
   }
 }
@@ -78,18 +112,15 @@ const statusEnum   = {
 class GPIOreceiver {
 
   constructor (param) {
-
-//TODO:check pin param
     this.pin = param.pin;
-
-    // adding pin to list
-    GPIO.addPin(this.pin);
 
     // init sender process
     this.spawnReceiver();
 
+    // listeners callbacks
+    this.listeners = [];
+
     // frame param
-    this.frame = [];
     this.initFrame();
 
     // pulse handler
@@ -101,22 +132,29 @@ class GPIOreceiver {
   spawnReceiver () {
     // fork process
     this.rxPinProcess = fork(`${__dirname}/genepi-hard-GPIO-receiver.js`, [this.pin]);
+    console.log('Spawned receiver subprocess %s for pin %d', this.rxPinProcess.pid, this.pin);
 
     // restart process on exit
     this.rxPinProcess.on('exit', () => {
-console.log('process %s exited - restarting', this.rxPinProcess.pid);
+      console.warn('Subprocess %s for pin %d exited - restarting', this.rxPinProcess.pid, this.pin);
       this.spawnReceiver();
     });
   }
 
 
+  addListener (cb) {
+    this.listeners.push(cb);
+  }
+  
+
   initFrame () {
+    this.frame = [];
     this.offset = 0;
     this.status = statusEnum.hardSync;
   }
 
-  addPulse (p) {
 
+  addPulse (p) {
     if (this.offset == (maxFrameSize - 1)) {
       // frame too long
 printFrame(this.frame, this.offset);
@@ -143,7 +181,8 @@ printFrame(this.frame, this.offset);
 
         if ( p > hardPulse ) {
           // footer - 
-printFrame(this.frame, this.offset);
+this.listeners[0](this.frame);
+//printFrame(this.frame, this.offset);
 //TODO: do stuff
 
           // add pulse to new frame
@@ -168,7 +207,7 @@ if (offset != 133) { return; }
 
   // printing message
 //  console.log("\n\nframe: %s - pulse = %s", offset, firstPulse?"H":"L");
-  console.log("\n\nframe: %s", offset);
+  console.debug("Received frame - pulses: %d - frame: %s", offset, frame.join(' '));
 
   for (let i = 0; i < offset; i++) {
 
@@ -189,7 +228,7 @@ if (offset != 133) { return; }
       }
     }
 
-    process.stdout.write(" " + frame[i]);
+//    process.stdout.write(" " + frame[i]);
   }
 
 //  let avgShortPulse = (minShortPulse + maxShortPulse ) / 2;
@@ -199,8 +238,8 @@ if (offset != 133) { return; }
   let avgLongPulse = 1300;
   let tolLongPulse = parseInt(100 * (1 - (maxLongPulse - avgLongPulse ) / avgLongPulse), 10);
 
-  console.log('\nShort\t%s\t%s\t%s\t%s', minShortPulse, maxShortPulse, avgShortPulse, tolShortPulse);
-  console.log('Long\t%s\t%s\t%s\t%s\n', minLongPulse, maxLongPulse, avgLongPulse, tolLongPulse);
+  console.debug('Short\t%s\t%s\t%s\t%s', minShortPulse, maxShortPulse, avgShortPulse, tolShortPulse);
+  console.debug('Long\t%s\t%s\t%s\t%s', minLongPulse, maxLongPulse, avgLongPulse, tolLongPulse);
 }
 
 

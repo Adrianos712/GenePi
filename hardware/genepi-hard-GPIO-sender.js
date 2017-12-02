@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 'use strict';
 
+process.on('disconnect', function () {
+  console.debug('IPC disconnection - exiting');
+  process.emit('SIGINT');
+});
+
 const sleep = require('sleep');
 
 // get microsecond time
@@ -15,7 +20,7 @@ var pin = process.argv[2];
 // init log
 require('../lib/log.js').init('GPIO-Tx ' + pin);
 
-console.info('init sender on pin %s', pin);
+console.info('Init sender on pin %s', pin);
 
 // bind GPIO
 const Gpio  = require('onoff').Gpio
@@ -23,7 +28,8 @@ var txPin = new Gpio(pin, 'out');
 
 // clean GPIO on exit
 process.on('SIGINT', function () {
-  console.info('closing pin %s', pin);
+  process.removeAllListeners('disconnect');
+  console.info('Closing pin %s', pin);
   txPin.unexport();
 });
 
@@ -33,11 +39,9 @@ txPin.writeSync(0);
 //send frame
 process.on('message', (frame) => {
 
-  console.debug('sending frame');
-
 //TODO: suppr repeat ?
   for (let repeat = 1; repeat <= 3; repeat++) {
-  console.debug(JSON.stringify(frame));
+    console.debug('Sending frame: %s', frame.join(' '));
 
     let port = true;
     for (let val=0; val < frame.length; val++) {

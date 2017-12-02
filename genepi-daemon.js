@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const leave = require('leave');
 
-//TODO
-process.env.NODE_LOGLEVEL = 6;
-require('./lib/log.js').init();
 
 //////////////////////////////  Parsing arguments  //////////////////////////////
 var ArgumentParser = require('argparse').ArgumentParser;
@@ -17,25 +13,31 @@ var parser = new ArgumentParser({
 parser.addArgument(
   [ '-c', '--config-file' ],
   {
-    help: 'daemon configuration file. Default: config.json',
+    help: 'Daemon configuration file. Default: config.json',
     defaultValue: 'config.json'
   }
 );
 parser.addArgument(
-  [ '-b', '--bar' ],
+  [ '-l', '--loglevel' ],
   {
-    help: 'bar foo',
-//    required: true
+    help: 'Daemon loglevel. Default: 3 (LOG)',
+    defaultValue: 3
   }
 );
 parser.addArgument(
   '-f',
   {
     help: 'baz bar'
+//    required: true
   }
 );
 var args = parser.parseArgs();
-console.dir(args);
+console.debug('Arguments: %j', args);
+
+
+// init logging
+process.env.NODE_LOGLEVEL = args.loglevel;
+require('./lib/log.js').init();
 
 
 //////////////////////////////  Parsing config file  //////////////////////////////
@@ -43,94 +45,85 @@ const fs=require('fs');
 try {
   var config = JSON.parse(fs.readFileSync(args.config_file, 'utf8'));
 } catch (err) {
-  leave('%s', err);
+  console.error('€rror parsing config file: %s', err);
+  process.exit(1);
 }
 
-console.debug(config);
 
 ['config.daemon', 'config.daemon.port', 'config.protocol', 'config.hardware'].forEach(function (item) {
-  if (typeof eval(item) === 'undefined' )
-    leave('ERROR: %s not defined in config file', item);
+  if (typeof eval(item) === 'undefined' ) {
+    console.error('param %s not defined in config file', item);
+    process.exit(1);
+  }
 });
 
+console.debug('Config: %j', config);
 
+
+//////////////////////////////  Init Hard & Proto        //////////////////////////////
 var hwTable    = {};
 var protoTable = {};
 
 // clear hardware resources on exit
-process.on('SIGINT', function () {
-  console.log('Exit\nClearing hardwares');
+process.on('SIGINT', process.exit);
+process.on('exit', function () {
+  console.log('Exit: clearing hardwares');
   Object.keys(hwTable).forEach( (hwName) => {
     if (typeof (hwTable[hwName].clearOnExit) === 'function') {
       hwTable[hwName].clearOnExit();
     }
   });
-  process.exit();
 });
 
-//leave();
 
 try {
-  // parsing hardwares
-  Object.keys(config.hardware).forEach( (hwName) => {
-    hwTable[hwName] = new (require('./hardware/genepi-hard-' + hwName + '.js'))();
+  // parsing hardwares type
+  Object.keys(config.hardware).forEach( (hwType) => {
+    // foreach hardware name
+    Object.keys(config.hardware[hwType]).forEach( (hwName) => {
 
-    // parsing senders
-    Object.keys(config.hardware[hwName].sender).forEach( (senderName) => {
-      hwTable[hwName].addSender(senderName, config.hardware[hwName].sender[senderName]);
+      if ( typeof(hwTable[hwName]) !== 'undefined') {
+        throw 'Hardware name ' + hwName + ' already exists ';
+      }
+
+      // creating HW
+      console.debug('New %s hardware: %s with param: %j', hwType, hwName, config.hardware[hwType][hwName]);
+      hwTable[hwName] = new (require('./hardware/genepi-hard-' + hwType + '.js'))(config.hardware[hwType][hwName]);
     });
-
-    // parsing receivers
-    Object.keys(config.hardware[hwName].receiver).forEach( (receiverName) => {
-      hwTable[hwName].addReceiver(receiverName, config.hardware[hwName].receiver[receiverName]);
-    });
-
   });
 
   // parsing protocols
   Object.keys(config.protocol).forEach( (protoName) => {
-//console.log('Parsing protocol: %s', protoName);
+    let sender = null, receiver = null;
 
-//TODO: sender
-    protoTable[protoName] = new (require('./protocol/genepi-proto-' + protoName + '.js'))(hwTable.GPIO.senderList['433.92']);
+    if ( (typeof(config.protocol[protoName].sender) !== 'undefined') && (typeof(hwTable[config.protocol[protoName].sender]) !== 'undefined') )
+      sender = hwTable[config.protocol[protoName].sender];
+
+    if ( (typeof(config.protocol[protoName].receiver) !== 'undefined') && (typeof(hwTable[config.protocol[protoName].receiver]) !== 'undefined') )
+      receiver = hwTable[config.protocol[protoName].receiver];
+
+    console.info('Binding proto %s with sender %s and receiver %s', protoName, sender ? config.protocol[protoName].sender:'none', receiver ? config.protocol[protoName].receiver : 'none');
+    protoTable[protoName] = new (require('./protocol/genepi-proto-' + protoName + '.js'))(sender, receiver);
   });
 
 } catch (error) {
-console.log(error);
-  leave('ERROR: failed parsing config file: %s', error);
+  console.error('Failed parsing config file: %s', error);
+  console.debug(error);
+  process.exit(0);
 }
 
 //console.log(require('util').inspect(hwTable, {depth: null}));
 //console.log(JSON.stringify(protoTable, true, 2));
 
 
-/* refaire
-['sender', 'receiver'].forEach( (hardware) => {
-  Object.keys(config.plugin).forEach( (name) => {
-    if ((typeof config.plugin[name][hardware] !== 'undefined') && (typeof config[hardware][config.plugin[name][hardware]] !== 'number'))
-      leave('Bad %s: %s for plugin %s', hardware, config.plugin[name][hardware], name);
-  });
-});
-*/
-
-
-//////////////////////////////  Init Protocols        //////////////////////////////
-/*
-fs.readdirSync('./protocol/').forEach( (file) => {
-  let proto = false;
-
-  if (proto = /genepi-proto-(.*)\.js/.exec(file) ) {
-    console.log('Adding protocol: %s', proto[1]);
-  }
-});
-*/
-
-
 //////////////////////////////  Init RPC methods      //////////////////////////////
 const rpcMethod = {
+//TODO:check ?
   'check': () => 'OK',
-  'capabilities': (params) => {
-console.log('RPC call: method capabilities');
+
+  'capabilities': () => {
+    console.info('RPC call: method capabilities');
+
     let capa = {};
     Object.keys(protoTable).forEach( (proto) => {
       capa[proto] = protoTable[proto].getCapabilities();
@@ -140,7 +133,7 @@ console.log('RPC call: method capabilities');
 
   'send': async (params) => {
     try {
-console.log('RPC call: method send with param %s', JSON.stringify(params));
+      console.info('RPC call: method send with param %j', params);
 
       if (typeof (params.protocol) === 'undefined') {
         throw ('no protocol');
@@ -150,12 +143,8 @@ console.log('RPC call: method send with param %s', JSON.stringify(params));
 
       return protoTable[params.protocol].send(params);
 
-
-//      return 'OK';
-//        return {"protocol":"SomFy","type":"shutter","param":{"address":"111111"},"rolling":{"rollingcode":params.rollingcode++,"rollingkey":params.rollingkey++},"cmd":{"Slider":{"state":params.value}}};
-
     } catch (error) {
-console.log(error);
+      console.debug(error);
       throw 'send method error: ' + error;
     }
   },
@@ -169,7 +158,7 @@ const textBody = require('body');
 
 const server = http.createServer(function(req, res) {
   var page = url.parse(req.url).pathname;
-  console.log(page);
+  console.debug('Received HTTP request with URL: %s',  page);
 
 //TODO ajout du APIkey
   if (page == '/') {
@@ -177,6 +166,7 @@ const server = http.createServer(function(req, res) {
     textBody(req, res, function (err, body) {
       // err probably means invalid HTTP protocol or some shiz. 
       if (err) {
+        console.warn('HTTP server error parsing body: %s - return 500', err);
         res.statusCode = 500;
         return res.end('Server error');
       }
@@ -185,12 +175,14 @@ const server = http.createServer(function(req, res) {
       require('./jsonrpc.js')(res, res.end, rpcMethod);
 
       // handle request
+      console.debug('Received RPC request with body: %s',  body);
       res.writeHead(200, {"Content-Type": "application/json"});
       res.handleMessage(body);
     });
 
   } else {
 //TODO bad APIkey
+    console.debug('Bad API key - return 401');
     res.statusCode = 401;
     return res.end('Unauthorized');
   }
@@ -205,26 +197,24 @@ const wss = new WebSocket.Server({ server });
 
 
 wss.on('error', function(err) {
-  console.log('Server Error: %s', err);
-//  console.log(err);
+  console.error('Server Error: %s', err);
+  console.debug(err);
+  process.exit(1);
 })
  
 wss.on('connection', function connection(ws, req) {
 
-console.log('new client connection');
+  console.info('New webSocket client connection');
+//TODO add connection info
 
   require('./jsonrpc.js')(ws, ws.send, rpcMethod);
   ws.on('message', ws.handleMessage);
-
-//  ws.addMethod('subscribe', (params) => params);
-
 });
 
 
 //////////////////////////////  Starting HTTP server  //////////////////////////////
 server.listen(config.daemon.port, function listening() {
-  console.log('Listening on %d', server.address().port);
+  console.log('Daemon listening on port %d', server.address().port);
 });
-
 
 

@@ -5,11 +5,11 @@ const genepiProto = require('./genepi-proto.js');
 
 class SomFy extends genepiProto {
 
-  constructor (GPIOemitter = null, GPIOreceiver = null) {
-    super();
+  constructor (emitter = null, receiver = null) {
+    super(emitter, receiver, 'GPIO');
 
-    this.GPIOemitter  = GPIOemitter;
-    this.GPIOreceiver = GPIOreceiver;
+    this.emitter  = emitter;
+    this.receiver = receiver;
 
     this.protoTree = {
         "shutter": {
@@ -43,6 +43,7 @@ class SomFy extends genepiProto {
     };
 
   } // constructor
+
 
   execCmd (param) {
 

@@ -5,11 +5,11 @@ const genepiProto = require('./genepi-proto.js');
 
 class HomeEasy extends genepiProto {
 
-  constructor (GPIOemitter = null, GPIOreceiver = null) {
-    super();
+  constructor (emitter = null, receiver = null) {
+    super(emitter, receiver, 'GPIO');
 
-    this.GPIOemitter  = GPIOemitter;
-    this.GPIOreceiver = GPIOreceiver;
+    this.emitter  = emitter;
+    this.receiver = receiver;
 
     this.protoTree = {
         "switch": {
@@ -59,15 +59,17 @@ class HomeEasy extends genepiProto {
         }
     };
 
+
+    // listening on receiver
+    if (this.receiver) {
+      receiver.listen(this.parseFrame);
+    }
+
   } // constructor
 
 
+  // exec HomeEasy command
   execCmd (param) {
-
-    // check emitter type
-    if (typeof(this.GPIOemitter.send) !== 'function') {
-      throw 'Invalid GPIO emitter type';
-    }
 
     let data = {
         "protocol": param.protocol,
@@ -150,16 +152,17 @@ class HomeEasy extends genepiProto {
         break;
     }
 
-/*
-console.log('sender value:');
-console.log(JSON.stringify(this, null, 2));
-*/
 
     let frame = new HEframe(data).frame;
-    this.GPIOemitter.send(frame);
-//console.log('frame: len ' + frame.length + '\n' + frame.join(' '));
+    this.emitter.send(frame);
 
     return res;
+  }
+
+
+  // parse frame
+  parseFrame (frame) {
+console.info('HE parsing frame: %s', frame.join(' '));
   }
 }
 
@@ -219,7 +222,6 @@ class HEframe {
     this.frame.push(footPulse);  // 0
     this.frame.push(shortPulse); // 1
   }
-
 
 
   // private properties

@@ -3,7 +3,14 @@
 
 class genepiProto {
 
-  constructor () {
+  constructor (emitter, receiver, hwType) {
+
+    // checking hardware type
+    if (emitter && (emitter.constructor.name !== hwType) )
+      throw 'Invalid emitter type: ' + emitter.constructor.name + ' for protocol ' + this.constructor.name + ' - should be ' + hwType;
+
+    if (receiver && (receiver.constructor.name !== hwType) )
+      throw 'Invalid receiver type: ' + receiver.constructor.name + ' for protocol ' + this.constructor.name + ' - should be ' + hwType;
   }
 
 
@@ -15,8 +22,9 @@ class genepiProto {
   send (param) {
 
     // check emitter
-    if (this.GPIOemitter === null) {
-      throw 'No GPIO emitter defined';
+    if (!this.emitter) {
+      console.warn('No emitter for protocol %s', param.protocol);
+      throw 'No emitter for protocol ' + param.protocol;
     }      
 
 
@@ -50,7 +58,6 @@ class genepiProto {
       }
     });
 
-//TODO: delete obj
     return this.execCmd(param);
   }
 
@@ -77,6 +84,7 @@ class genepiProto {
         break;
 
       case 'color':
+        throw ('Unknown action type: ' + action);
 //TODO
         break;
 

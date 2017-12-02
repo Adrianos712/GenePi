@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 'use strict';
 
+process.on('disconnect', function () {
+  console.debug('IPC disconnection - exiting');
+  process.emit('SIGINT');
+});
 
 // get microsecond time
 function getTime () {
@@ -21,7 +25,8 @@ var receiver = new Gpio(pin, 'in', 'both');
 
 // clean GPIO on exit
 process.on('SIGINT', function () {
-  console.info('closing pin %s', pin);
+  process.removeAllListeners('disconnect');
+  console.info('Closing pin %s', pin);
   receiver.unexport();
 });
 
@@ -42,6 +47,6 @@ receiver.watch( (err) => {
   process.send(pulse);
 });
 
-console.info('listening on pin %s', pin);
+console.info('Listening on pin %s', pin);
 
 
