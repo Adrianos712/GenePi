@@ -102,6 +102,7 @@ try {
     if ( (typeof(config.protocol[protoName].receiver) !== 'undefined') && (typeof(hwTable[config.protocol[protoName].receiver]) !== 'undefined') )
       receiver = hwTable[config.protocol[protoName].receiver];
 
+    // creating protocol
     console.info('Binding proto %s with sender %s and receiver %s', protoName, sender ? config.protocol[protoName].sender:'none', receiver ? config.protocol[protoName].receiver : 'none');
     protoTable[protoName] = new (require('./protocol/genepi-proto-' + protoName + '.js'))(sender, receiver);
   });
@@ -194,7 +195,7 @@ const server = http.createServer(function(req, res) {
 //////////////////////////////  Init WebSocket  //////////////////////////////
 const WebSocket = require('uws');
 const wss = new WebSocket.Server({ server });
-
+var wsClientTable = [];
 
 wss.on('error', function(err) {
   console.error('Server Error: %s', err);
@@ -206,6 +207,9 @@ wss.on('connection', function connection(ws, req) {
 
   console.info('New webSocket client connection');
 //TODO add connection info
+console.info (JSON.stringify(ws, true, 2));
+
+  wsClientTable.push(ws);
 
   require('./jsonrpc.js')(ws, ws.send, rpcMethod);
   ws.on('message', ws.handleMessage);
@@ -216,5 +220,15 @@ wss.on('connection', function connection(ws, req) {
 server.listen(config.daemon.port, function listening() {
   console.log('Daemon listening on port %d', server.address().port);
 });
+
+//TODO: gerer l'envoi par socket
+  function handleNotif (message) {
+console.info ('Got notification: %s', JSON.stringify(message, true, 2));
+    wsClientTable.forEach( ws => ws.notify('message', message) );
+  }
+
+
+    // listening for notif
+    protoTable.HomeEasy.on('notif', handleNotif);
 
 

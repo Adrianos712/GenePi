@@ -55,7 +55,12 @@ console.log ('[%s]calling method %s with param %s', conn.rpcID, method, JSON.str
     var jsonMsg = jsonrpc.parse(message);
 //console.log(' [%s]json - type: %s', jsonMsg.payload.id, jsonMsg.type);
 
-    if ((jsonMsg.type === 'request') || (jsonMsg.type === 'notification')) {
+    if (jsonMsg.type === 'notification') {
+      // RPC notification -> find a method handler
+      if (typeof conn.rpcMethod[jsonMsg.payload.method] === 'function')
+        conn.rpcMethod[jsonMsg.payload.method](jsonMsg.payload.params);
+
+    } else if (jsonMsg.type === 'request') {
       // RPC request -> find a method handler
 
       if (typeof conn.rpcMethod[jsonMsg.payload.method] === 'function') {

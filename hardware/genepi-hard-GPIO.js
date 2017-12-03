@@ -65,6 +65,7 @@ GPIO.config = {
 };
 
 
+//////////////////// Sender ////////////////////////////
 class GPIOsender {
 
   constructor (param) {
@@ -102,7 +103,7 @@ class GPIOsender {
 
 //////////////////// Receiver ////////////////////////////
 const hardPulse    = 6000;
-const maxFrameSize = 3000;
+const maxFrameSize = 300;
 const statusEnum   = {
     'hardSync' : 1,
     'recvData' : 2
@@ -114,25 +115,25 @@ class GPIOreceiver {
   constructor (param) {
     this.pin = param.pin;
 
-    // init sender process
-    this.spawnReceiver();
-
     // listeners callbacks
     this.listeners = [];
 
     // frame param
     this.initFrame();
 
-    // pulse handler
-    this.rxPinProcess.on('message', (pulse) => {
-      this.addPulse(pulse);
-    });
+    // init sender process
+    this.spawnReceiver();
   }
 
   spawnReceiver () {
     // fork process
     this.rxPinProcess = fork(`${__dirname}/genepi-hard-GPIO-receiver.js`, [this.pin]);
     console.log('Spawned receiver subprocess %s for pin %d', this.rxPinProcess.pid, this.pin);
+
+    // pulse handler
+    this.rxPinProcess.on('message', (pulse) => {
+      this.addPulse(pulse);
+    });
 
     // restart process on exit
     this.rxPinProcess.on('exit', () => {
@@ -149,15 +150,14 @@ class GPIOreceiver {
 
   initFrame () {
     this.frame = [];
-    this.offset = 0;
     this.status = statusEnum.hardSync;
   }
 
 
   addPulse (p) {
-    if (this.offset == (maxFrameSize - 1)) {
+    if (this.frame.length == (maxFrameSize - 1)) {
       // frame too long
-printFrame(this.frame, this.offset);
+//printFrame(this.frame);
       this.initFrame();
     }
 
@@ -166,39 +166,41 @@ printFrame(this.frame, this.offset);
       case statusEnum.hardSync:
         if (p > hardPulse) {
           // hard pulse
-          this.frame[this.offset++] = p;
-//process.stdout.write(" H" + p);
-        } else if ((p <= hardPulse) && (this.offset != 0)) {
+          this.frame.push(p);
+
+        } else if ((p <= hardPulse) && (this.frame.length != 0)) {
           //first data pulse
-          this.frame[this.offset++] = p;
+          this.frame.push(p);
           this.status = statusEnum.recvData
         }
         break;
 
       case statusEnum.recvData:
 // suppr bruit ?
-        this.frame[this.offset++] = p;
+        this.frame.push(p);
 
         if ( p > hardPulse ) {
-          // footer - 
-this.listeners[0](this.frame);
-//printFrame(this.frame, this.offset);
+          // footer - frame complete
 //TODO: do stuff
+  if (this.frame.length == 133)
+printFrame(this.frame);
+    //this.listeners[0](this.frame);
+    setImmediate(this.listeners[0], this.frame);
 
           // add pulse to new frame
           this.initFrame();
-          this.frame[this.offset++] = p;
+          this.frame.push(p);
         }
-
         break;
     }
   }
 }
 
 
-function printFrame(frame, offset) {
+function printFrame(frame) {
 
-if (offset != 133) { return; }
+//TODO
+if (frame.length < 60) { return; }
 
   let minShortPulse = 800;
   let maxShortPulse = 0;
@@ -206,10 +208,9 @@ if (offset != 133) { return; }
   let maxLongPulse = 0;
 
   // printing message
-//  console.log("\n\nframe: %s - pulse = %s", offset, firstPulse?"H":"L");
-  console.debug("Received frame - pulses: %d - frame: %s", offset, frame.join(' '));
+  console.debug("Received frame - pulses: %d - frame: %s", frame.length, frame.join(' '));
 
-  for (let i = 0; i < offset; i++) {
+  for (let i = 0; i < frame.length; i++) {
 
     if (frame[i] < 800) {
       //Calculate min and max for short pulses

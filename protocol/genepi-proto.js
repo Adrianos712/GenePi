@@ -1,9 +1,11 @@
 'use strict';
 
+const EventEmitter = require('events').EventEmitter
 
-class genepiProto {
+class genepiProto extends EventEmitter {
 
   constructor (emitter, receiver, hwType) {
+    super();
 
     // checking hardware type
     if (emitter && (emitter.constructor.name !== hwType) )
@@ -11,6 +13,11 @@ class genepiProto {
 
     if (receiver && (receiver.constructor.name !== hwType) )
       throw 'Invalid receiver type: ' + receiver.constructor.name + ' for protocol ' + this.constructor.name + ' - should be ' + hwType;
+
+    // listen to messages
+    if (receiver) {
+      this.on('message', this.notif);
+    }
   }
 
 
@@ -18,6 +25,14 @@ class genepiProto {
   getCapabilities () { return this.protoTree; }
 
 
+  /////////////// Receiver /////////////////
+  notif (message) {
+    this.emit('notif', message);
+  }
+
+
+
+  /////////////// Emitter //////////////////
   // send action on protocol
   send (param) {
 

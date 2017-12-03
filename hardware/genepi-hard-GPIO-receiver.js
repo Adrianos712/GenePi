@@ -44,7 +44,8 @@ receiver.watch( (err) => {
   elapsed += pulse;
 
   // do smthg
-  process.send(pulse);
+  if (pulse > 200)
+    process.send(pulse);
 });
 
 console.info('Listening on pin %s', pin);

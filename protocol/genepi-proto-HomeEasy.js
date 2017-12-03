@@ -11,6 +11,7 @@ class HomeEasy extends genepiProto {
     this.emitter  = emitter;
     this.receiver = receiver;
 
+
     this.protoTree = {
         "switch": {
             "param": {
@@ -62,9 +63,8 @@ class HomeEasy extends genepiProto {
 
     // listening on receiver
     if (this.receiver) {
-      receiver.listen(this.parseFrame);
+      receiver.listen(this.parseFrame.bind(this));
     }
-
   } // constructor
 
 
@@ -162,7 +162,39 @@ class HomeEasy extends genepiProto {
 
   // parse frame
   parseFrame (frame) {
-console.info('HE parsing frame: %s', frame.join(' '));
+    let data = new HEframe({'frame':frame});
+
+    if (data.isHE) {
+      delete data.isHE;
+      delete data.frame;
+console.log (JSON.stringify(data, true, 2));
+
+      // building message
+      let message = {
+          "protocol": this.constructor.name,
+          "type":     data.type,
+          "param": {
+              "ID":   data.ID
+          },
+          "cmd": {
+              "Power": {
+                  "state": data.state
+               }
+          }
+      };
+
+      if (!data.all) message.cmd.Power.unit = data.unit;
+
+      if (data.type === 'dimmer') {
+        message.cmd.Dim = { "state": data.dimLevel };
+        if (!data.all) message.cmd.Dim.unit = data.unit;
+
+        // Dimm all
+        if (data.all) message.cmd['Dim all'] = message.cmd.Dim;
+      }
+
+      this.emit('message', message);
+    }
   }
 }
 
@@ -173,6 +205,18 @@ const softPulse  =  2800;
 const shortPulse =   300;
 const longPulse  =  1280;
 const footPulse  = 10000;
+const tolerance  =   0.3;
+
+const hardPulseMin  = hardPulse  - hardPulse  * tolerance;
+const hardPulseMax  = hardPulse  + hardPulse  * tolerance;
+const softPulseMin  = softPulse  - softPulse  * tolerance;
+const softPulseMax  = softPulse  + softPulse  * tolerance;
+const shortPulseMin = shortPulse - shortPulse * tolerance * 2;
+const shortPulseMax = shortPulse + shortPulse * tolerance * 2;
+const longPulseMin  = longPulse  - longPulse  * tolerance;
+const longPulseMax  = longPulse  + longPulse  * tolerance;
+const footPulseMin  = footPulse  - footPulse  * tolerance;
+const footPulseMax  = footPulse  + footPulse  * tolerance;
 
 // add leadings 0 to a string
 String.prototype.add0 = function (len) {
@@ -193,14 +237,116 @@ class HEframe {
     this.frame    = param.frame    || [];
 
     if (typeof(param.frame) === 'undefined') {
+      this.isHE = true;
       this.paramToFrame();
     } else {
+      this.isHE = false;
       this.frameToParam();
     }
   }
 
+
   frameToParam() {
+    let status  = 'hard_sync'
+    let payload = '';
+    let prevBit = 0;
+    let offset  = 0;
+
+    for (let i = 0; i < this.frame.length; i++) {
+
+      switch (status) {
+        case 'hard_sync':
+          if ( (this.frame[i] > shortPulseMin) && (this.frame[i] < shortPulseMax) ) {
+            // tempo
+            status = 'soft_sync';
+
+          } else if ( (this.frame[i] < hardPulseMin) || (this.frame[i] > hardPulseMax) ) {
+            // not hardPulse nor soft -> wrong frame
+            return;
+          }
+          break;
+
+        case 'soft_sync':
+          if ( (this.frame[i] > softPulseMin) && (this.frame[i] < softPulseMax) ) {
+            if ( (this.frame.length - i != 131) && (this.frame.length - i != 147) ) return ; // wrong length
+            if ( this.frame.length - i == 147 ) this.type = 'dimmer';
+            // received Soft Sync
+            status = 'data';
+
+          } else {
+            // not softPulse -> wrong frame
+            return;
+          }
+          break;
+
+        case 'data':
+          if ( (this.frame[i] > shortPulseMin) && (this.frame[i] < shortPulseMax) ) {
+            // short pulse : bit = 0
+            if ( offset % 4 == 3 ) {
+              // second bit
+              if ( (prevBit == 1) || (offset > 110) ) {
+                // code 10 : bit = 1
+                // or code 00 : bit = 0 for bits 128-144 for dimmer
+                payload += '1';
+
+              } else {
+                // wrong code 00 : clear
+                return ;
+              }
+            } else if ( offset % 2 ) {
+              // first bit
+              prevBit = 0;
+            }
+
+          } else if ( (this.frame[i] > longPulseMin) && (this.frame[i] < longPulseMax) ) {
+            // long pulse : bit = 1
+            if ( offset % 4 == 3 ) {
+              // second bit
+              if (prevBit == 0) {
+                // code 01 : bit = 0
+                payload += '0';
+
+              } else {
+                // wrong code 11 : clear
+                return ;
+              }
+            } else if ( offset % 2 ) {
+              // first bit
+              prevBit = 1;
+            } else {
+              // wrong tempo : clear
+              return ;
+            }
+
+          } else if ( (this.frame[i] > footPulseMin) && (this.frame[i] < footPulseMax) ) {
+            // received Footer
+            this.isHE = true;
+
+            // decoding
+            this.ID    = parseInt(payload.substring( 0,26), 2);
+            this.all   = parseInt(payload.substring(26,27), 2);
+            this.state = parseInt(payload.substring(27,28), 2);
+            this.unit  = parseInt(payload.substring(28,32), 2);
+
+            if ( this.type === 'dimmer' ) {
+              this.dimLevel = parseInt(payload.substr(32,36), 2);
+            } else {
+              delete(this.dimLevel);
+            }
+
+            return;
+
+          } else {
+            // noise : clear
+            return ;
+          }
+
+          offset++;
+          break;
+      }
+    }
   }
+
 
   paramToFrame() {
     // Header
