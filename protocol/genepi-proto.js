@@ -27,6 +27,7 @@ class genepiProto extends EventEmitter {
 
   /////////////// Receiver /////////////////
   notif (message) {
+//TODO: add stuff ? repeat ?
     this.emit('notif', message);
   }
 

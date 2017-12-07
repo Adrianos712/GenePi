@@ -63,6 +63,7 @@ class HomeEasy extends genepiProto {
 
     // listening on receiver
     if (this.receiver) {
+//TODO: event ?
       receiver.listen(this.parseFrame.bind(this));
     }
   } // constructor
@@ -167,7 +168,7 @@ class HomeEasy extends genepiProto {
     if (data.isHE) {
       delete data.isHE;
       delete data.frame;
-console.log (JSON.stringify(data, true, 2));
+      console.info('Received %s message: %j', this.constructor.name, data);
 
       // building message
       let message = {

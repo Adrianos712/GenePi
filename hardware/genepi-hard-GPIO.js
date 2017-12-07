@@ -182,9 +182,7 @@ class GPIOreceiver {
         if ( p > hardPulse ) {
           // footer - frame complete
 //TODO: do stuff
-  if (this.frame.length == 133)
 printFrame(this.frame);
-    //this.listeners[0](this.frame);
     setImmediate(this.listeners[0], this.frame);
 
           // add pulse to new frame
@@ -200,7 +198,7 @@ printFrame(this.frame);
 function printFrame(frame) {
 
 //TODO
-if (frame.length < 60) { return; }
+if (frame.length < 50) { return; }
 
   let minShortPulse = 800;
   let maxShortPulse = 0;

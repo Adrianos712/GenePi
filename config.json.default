@@ -1,0 +1,19 @@
+{
+    "daemon": {
+        "port": "4242"
+    },
+    "protocol": {
+        "HomeEasy": {
+            "sender": "433.92",
+            "receiver": "433.92"
+        }
+    },
+    "hardware": {
+        "GPIO": {
+            "433.92": {
+                "TXpin": 26,
+                "RXpin": 19
+            },
+        },
+    }
+}

@@ -8,13 +8,13 @@ var ArgumentParser = require('argparse').ArgumentParser;
 var parser = new ArgumentParser({
   version: '0.0.1',
   addHelp:true,
-  description: 'RFpi daemon'
+  description: 'GenePi daemon'
 });
 parser.addArgument(
   [ '-c', '--config-file' ],
   {
     help: 'Daemon configuration file. Default: config.json',
-    defaultValue: 'config.json'
+    defaultValue: __dirname + '/config.json'
   }
 );
 parser.addArgument(
@@ -32,13 +32,14 @@ parser.addArgument(
   }
 );
 var args = parser.parseArgs();
-console.debug('Arguments: %j', args);
 
 
 // init logging
 process.env.NODE_LOGLEVEL = args.loglevel;
 require('./lib/log.js').init();
 
+
+console.debug('Arguments: %j', args);
 
 //////////////////////////////  Parsing config file  //////////////////////////////
 const fs=require('fs');
@@ -66,6 +67,7 @@ var protoTable = {};
 
 // clear hardware resources on exit
 process.on('SIGINT', process.exit);
+process.on('SIGTERM', process.exit);
 process.on('exit', function () {
   console.log('Exit: clearing hardwares');
   Object.keys(hwTable).forEach( (hwName) => {
@@ -217,7 +219,22 @@ console.info (JSON.stringify(ws, true, 2));
 
 
 //////////////////////////////  Starting HTTP server  //////////////////////////////
-server.listen(config.daemon.port, function listening() {
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error('Impossible de lancer le daemon: port deja utilise');
+    process.exit(1);
+  }
+
+  console.error('Erreur sur le serveur: %s', err);
+});
+
+
+server.listen(config.daemon.port, function (err) {
+  if (err) {
+    console.error('Impossible de lancer le daemon: %s', err);
+    process.exit(1);
+  }
+
   console.log('Daemon listening on port %d', server.address().port);
 });
 
