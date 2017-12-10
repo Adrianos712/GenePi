@@ -182,7 +182,7 @@ class GPIOreceiver {
         if ( p > hardPulse ) {
           // footer - frame complete
 //TODO: do stuff
-printFrame(this.frame);
+//printFrame(this.frame);
     setImmediate(this.listeners[0], this.frame);
 
           // add pulse to new frame
