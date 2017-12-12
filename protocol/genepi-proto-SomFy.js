@@ -14,8 +14,9 @@ class SomFy extends genepiProto {
     this.protoTree = {
         "shutter": {
             "param": {
-                "address": "[0-16777215]",
-                "time": "number"
+                "address":  "[0-16777215]",
+                "timeup":   "number",
+                "timedown": "number"
             },
             "rolling": {
                 "rollingcode": "[0-65535]",
@@ -56,7 +57,6 @@ class SomFy extends genepiProto {
         "protocol":    param.protocol,
         "type":        param.type,
         "address":     param.address,
-//TODO        "time":        param.time,
         "rollingcode": param.rollingcode,
         "rollingkey":  param.rollingkey
     };
@@ -101,20 +101,54 @@ class SomFy extends genepiProto {
         break;
 
       case 'Slider':
-//TODO        data.cmdID = ;
-//TODO  copy data
-//TODO : rolling +1
-        if (param.value > param.oldValue) {
-        } else if (param.value < param.oldValue) {
+        // testing oldValue param
+        if ( typeof (param.oldValue) === 'undefined' ) { throw ('Missing attribute oldValue'); }
+        let match = /^\[(\d+)\-(\d+)\]$/.exec(this.protoTree.shutter.cmd.Slider.state);
+        if ( isNaN(param.oldValue) || (Number(param.oldValue) < Number(match[1])) || (Number(param.oldValue) > Number(match[2])) ) { throw ('Wrong attribute type for param oldValue:' + param.oldValue + ' - should be ' + this.protoTree.shutter.cmd.Slider.state); }
+        param.oldValue = Number(param.oldValue);
+
+        let time = 0;
+
+        // prepare second frame: my
+        let dataAfter = {...data, "cmdID": 1, "cmd": "my"};
+        dataAfter.rollingcode++;
+        dataAfter.rollingkey++;
+
+        if (param.value < param.oldValue) {
+          // down
+          data.cmdID = 4;
+          data.cmd   = 'down';
+          time = param.timedown;
+
+        } else if (param.value > param.oldValue) {
+          // up
+          data.cmdID = 2;
+          data.cmd   = 'up';
+          time = param.timeup;
+
         } else {
 //TODO: test
           return {};
         }
+
+        // time between frames (ms) = |%diff| / 100 * time * 1000
+        time = Math.abs(param.oldValue - param.value) * time * 10;
+
+        // send stop (my) after time
+        setTimeout( () => {
+          let frame = new SomFyFrame(dataAfter).frame;
+          this.emitter.send(frame);
+        }, time);
+
         res.cmd.Slider = { "state": param.value };
+        res.rolling.rollingcode++;
+        res.rolling.rollingkey++;
+//TODO : rolling +1
         break;
     }
 
 
+    // send frame
     let frame = new SomFyFrame(data).frame;
     this.emitter.send(frame);
 
@@ -219,13 +253,13 @@ class SomFyFrame {
 
 //debug
 console.log(this);
-for (let i=0; i<7; i++) console.log('SomFy: %d = %d\t0x%s\t0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
+//for (let i=0; i<7; i++) console.log('SomFy: %d = %d\t0x%s\t0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
 
 
     // Obsufscation
     for(let i = 1; i < 7; ++i) data[i] = data[i] ^ data[i-1];
 
-for (let i=0; i<7; i++) console.log('SomFy: %d = %d\t0x%s\t0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
+//for (let i=0; i<7; i++) console.log('SomFy: %d = %d\t0x%s\t0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
 
     // Header
     this.frame.push(hardPulse1_1);  // 1
