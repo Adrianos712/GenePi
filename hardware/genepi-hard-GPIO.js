@@ -183,7 +183,9 @@ class GPIOreceiver {
           // footer - frame complete
 //TODO: do stuff
 //printFrame(this.frame);
-    setImmediate(this.listeners[0], this.frame);
+          for (let i = 0; i < this.listeners.length; i++) {
+            setImmediate(this.listeners[i], this.frame);
+          }
 
           // add pulse to new frame
           this.initFrame();

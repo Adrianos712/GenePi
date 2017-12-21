@@ -3,6 +3,17 @@
 
 const genepiProto = require('./genepi-proto.js');
 
+const rollingKeyMod  =    16;
+const rollingCodeMod = 65536;
+
+function addRollKey (key) {
+  return (key + 1) % rollingKeyMod;
+};
+
+function addRollCode (code) {
+  return (code + 1) % rollingCodeMod;
+};
+
 class SomFy extends genepiProto {
 
   constructor (emitter = null, receiver = null) {
@@ -68,8 +79,8 @@ class SomFy extends genepiProto {
             "address":     param.address
         },
         "rolling": {
-            "rollingcode": (param.rollingcode + 1) % 65536,
-            "rollingkey":  (param.rollingkey  + 1) % 16
+            "rollingcode": addRollCode(param.rollingcode),
+            "rollingkey":  addRollKey(param.rollingkey)
         },
         "cmd": {}
     };
@@ -141,9 +152,9 @@ class SomFy extends genepiProto {
         }, time);
 
         res.cmd.Slider = { "state": param.value };
-        res.rolling.rollingcode++;
-        res.rolling.rollingkey++;
-//TODO : rolling +1
+        res.rolling.rollingcode = addRollCode(res.rolling.rollingcode);
+        res.rolling.rollingkey  = addRollKey(res.rolling.rollingkey);
+//TODO : rolling +1 - generer un nouveau res ?
         break;
     }
 
@@ -158,7 +169,6 @@ class SomFy extends genepiProto {
 
   // parse frame
   parseFrame (frame) {
-return;
     let data = new SomFyFrame({'frame':frame});
 
     if (data.isRTS) {
@@ -171,8 +181,8 @@ return;
           "protocol": this.constructor.name,
           "type":     "shutter",
           "rolling": {
-              "rollingcode": data.rollingcode,
-              "rollingkey":  data.rollingkey
+              "rollingcode": addRollCode(data.rollingcode),
+              "rollingkey":  addRollKey(data.rollingkey)
           },
           "param": {
               "address":   data.address
@@ -182,11 +192,11 @@ return;
           }
       };
 
-      switch (data.action) {
-        case '2':
+      switch (data.cmdID) {
+        case 2:
           message.cmd.Slider.state = 99;
           break;
-        case '4':
+        case 4:
           message.cmd.Slider.state = 0;
           break;
 //TODO
@@ -211,6 +221,29 @@ const footPulse1      = 27500;
 const footPulse2      = 32500;
 const tolerance       =   0.3;
 
+
+const hardPulse1_1Min    = hardPulse1_1    - hardPulse1_1    * tolerance;
+const hardPulse1_1Max    = hardPulse1_1    + hardPulse1_1    * tolerance;
+const hardPulse1_2Min    = hardPulse1_2    - hardPulse1_2    * tolerance;
+const hardPulse1_2Max    = hardPulse1_2    + hardPulse1_2    * tolerance;
+const hardPulse2_1Min    = hardPulse2_1    - hardPulse2_1    * tolerance;
+const hardPulse2_1Max    = hardPulse2_1    + hardPulse2_1    * tolerance;
+const hardPulse2_2Min    = hardPulse2_2    - hardPulse2_2    * tolerance;
+const hardPulse2_2Max    = hardPulse2_2    + hardPulse2_2    * tolerance;
+const symbolPulseMin     = symbolPulse     - symbolPulse     * tolerance;
+const symbolPulseMax     = symbolPulse     + symbolPulse     * tolerance;
+const halfSymbolPulseMin = halfSymbolPulse - halfSymbolPulse * tolerance;
+const halfSymbolPulseMax = halfSymbolPulse + halfSymbolPulse * tolerance;
+const softPulseMin       = softPulse       - softPulse       * tolerance;
+const softPulseMax       = softPulse       + softPulse       * tolerance;
+const startPulseMin      = startPulse      - startPulse      * tolerance;
+const startPulseMax      = startPulse      + startPulse      * tolerance;
+const footPulse1Min      = footPulse1      - footPulse1      * tolerance;
+const footPulse1Max      = footPulse1      + footPulse1      * tolerance;
+const footPulse2Min      = footPulse2      - footPulse2      * tolerance;
+const footPulse2Max      = footPulse2      + footPulse2      * tolerance;
+
+
 class SomFyFrame {
   constructor(param) {
 
@@ -232,8 +265,113 @@ class SomFyFrame {
   }
 
 
+
   frameToParam() {
+    let status  = 'waiting_sync'
+    let nbSoftPulse = 0;
+    let payload = [0, 0, 0, 0, 0, 0, 0];
+    let prevBit = 0;
+    let offset  = 0;
+    let waitingHalfSymbol = false;
+
+    // parsing frame
+    for (let i = 0; i < this.frame.length; i++) {
+
+      switch (status) {
+        case 'waiting_sync':
+          if (this.frame[i] > softPulseMin && this.frame[i] < softPulseMax) {
+            // received Soft Sync
+            ++nbSoftPulse;
+
+          } else if (this.frame[i] > startPulseMin && this.frame[i] < startPulseMax && nbSoftPulse >= 8) {
+            // received Start
+            this.softSync = nbSoftPulse;
+            status = 'data';
+
+          } else if ((this.frame[i] > hardPulse1_1Min && this.frame[i] < hardPulse1_1Max) || (this.frame[i] > hardPulse1_2Min && this.frame[i] < hardPulse1_2Max)) {
+            this.hardSync = 'type1';
+
+          } else if ((this.frame[i] > hardPulse2_1Min && this.frame[i] < hardPulse2_1Max) || (this.frame[i] > hardPulse2_2Min && this.frame[i] < hardPulse2_2Max)) {
+            this.hardSync = 'type2';
+
+          } else if (this.frame[i] < softPulseMin) {
+            // not hardPulse nor soft -> wrong frame
+            return;
+          }
+          break;
+          
+        case 'data':
+          if (this.frame[i] > symbolPulseMin && this.frame[i] < symbolPulseMax && !waitingHalfSymbol) {
+            prevBit = 1 - prevBit;
+            payload[parseInt(offset/8)] += prevBit << (7 - offset % 8);
+            ++offset;
+
+          } else if (this.frame[i] > halfSymbolPulseMin && this.frame[i] < halfSymbolPulseMax) {
+            if (waitingHalfSymbol) {
+              waitingHalfSymbol = false;
+              payload[parseInt(offset/8)] += prevBit << (7 - offset % 8);
+              ++offset;
+            } else {
+              waitingHalfSymbol = true;
+            }
+
+          } else if ((this.frame[i] > footPulse1Min && this.frame[i] < footPulse1Max) || (this.frame[i] > footPulse2Min && this.frame[i] < footPulse2Max)) {
+            // footer - complete
+            if (offset == 56) {
+              this.isRTS = true;
+              this.decode(payload);
+            }
+            return;
+
+          } else {
+            // not hardPulse nor soft -> wrong frame
+            return;
+          }
+          break;
+      }
+    }
   }
+
+
+  decode(payload) {
+    let data = [];
+
+    // De-obfuscation
+    data[0] = payload[0];
+    for(let i = 1; i < 7; ++i) data[i] = payload[i] ^ payload[i-1];
+ 
+    // Checksum
+    let cksum = 0;
+    for(let i = 0; i < 7; ++i) cksum = cksum ^ data[i] ^ (data[i] >> 4);
+    cksum = cksum & 0x0F;
+    if (cksum != 0) {
+      console.info('wrong checksum');
+      return;
+    }
+
+//debug
+//for (let i=0; i<7; i++) console.log('dec SomFy: %d = %d 0x%s 0b%s', i, payload[i], payload[i].toString(16), payload[i].toString(2));
+//for (let i=0; i<7; i++) console.log('dec SomFy: %d = %d 0x%s 0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
+
+    // Touche de controle
+    switch(data[1] & 0xF0) {
+      case 0x10: this.cmdID = 1; this.cmd = "My"; break;
+      case 0x20: this.cmdID = 2; this.cmd = "Up"; break;
+      case 0x40: this.cmdID = 4; this.cmd = "Down"; break;
+      case 0x80: this.cmdID = 8; this.cmd = "Prog"; break;
+      default:   this.cmd = "???"; break;
+    }
+ 
+    // Rolling key
+    this.rollingkey = (data[0] & 0x0F);
+ 
+    // Rolling code
+    this.rollingcode = (data[2] << 8) + data[3];
+ 
+    // Adresse
+    this.address = (data[6] << 16) + (data[5] << 8 & 0xFFFF) + data[4];
+  }
+
 
   paramToFrame() {
     // payload
@@ -253,13 +391,13 @@ class SomFyFrame {
 
 //debug
 console.log(this);
-//for (let i=0; i<7; i++) console.log('SomFy: %d = %d\t0x%s\t0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
+//for (let i=0; i<7; i++) console.log('enc SomFy: %d = %d 0x%s 0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
 
 
     // Obsufscation
     for(let i = 1; i < 7; ++i) data[i] = data[i] ^ data[i-1];
 
-//for (let i=0; i<7; i++) console.log('SomFy: %d = %d\t0x%s\t0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
+//for (let i=0; i<7; i++) console.log('enc SomFy: %d = %d 0x%s 0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
 
     // Header
     this.frame.push(hardPulse1_1);  // 1
@@ -275,10 +413,10 @@ console.log(this);
       let bit = (data[parseInt(i/8)] >>> (7 - i%8)) & 0x01;
 
       if (lastBit ^ bit) {
-        this.frame.push(halfSymbolPulse);
-        this.frame.push(halfSymbolPulse);
-      } else {
         this.frame.push(symbolPulse);
+      } else {
+        this.frame.push(halfSymbolPulse);
+        this.frame.push(halfSymbolPulse);
       }
 
       lastBit = bit;

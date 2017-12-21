@@ -238,14 +238,16 @@ server.listen(config.daemon.port, function (err) {
   console.log('Daemon listening on port %d', server.address().port);
 });
 
+
 //TODO: gerer l'envoi par socket
-  function handleNotif (message) {
-console.info ('Got notification: %s', JSON.stringify(message, true, 2));
-    wsClientTable.forEach( ws => ws.notify('message', message) );
-  }
+function handleNotif (message) {
+  console.info ('Got notification: %s', JSON.stringify(message, true, 2));
+  wsClientTable.forEach( ws => ws.notify('message', message) );
+}
 
 
-    // listening for notif
-    protoTable.HomeEasy.on('notif', handleNotif);
-
+Object.keys(protoTable).forEach( (proto) => {
+  // listening for notif
+  protoTable[proto].on('notif', handleNotif);
+});
 
