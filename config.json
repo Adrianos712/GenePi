@@ -7,6 +7,10 @@
         "Template": {
             "receiver": "433.92"
         },
+        "Adri": {
+            "sender": "433.92",
+            "receiver": "433.92"
+        },
         "HomeEasy": {
             "sender": "433.92",
             "receiver": "433.92"

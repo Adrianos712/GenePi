@@ -174,7 +174,7 @@ class SomFy extends genepiProto {
     if (data.isRTS) {
       delete data.isRTS;
       delete data.frame;
-      console.info('Received %s message: %j', this.constructor.name, data);
+      this.emit('raw', data);
 
       // building message
       let message = {
@@ -194,12 +194,12 @@ class SomFy extends genepiProto {
 
       switch (data.cmdID) {
         case 2:
-          message.cmd.Slider.state = 99;
+//          message.cmd.Slider.state = 99;
           break;
         case 4:
-          message.cmd.Slider.state = 0;
+//          message.cmd.Slider.state = 0;
           break;
-//TODO
+//TODO - remonter etat reel ? / desactiver l'emit si action en cours ?
       }
 
       this.emit('message', message);
@@ -318,13 +318,12 @@ class SomFyFrame {
           } else if ((this.frame[i] > footPulse1Min && this.frame[i] < footPulse1Max) || (this.frame[i] > footPulse2Min && this.frame[i] < footPulse2Max)) {
             // footer - complete
             if (offset == 56) {
-              this.isRTS = true;
               this.decode(payload);
             }
             return;
 
           } else {
-            // not hardPulse nor soft -> wrong frame
+            // wrong pulse
             return;
           }
           break;
@@ -348,6 +347,8 @@ class SomFyFrame {
       console.info('wrong checksum');
       return;
     }
+
+    this.isRTS = true;
 
 //debug
 //for (let i=0; i<7; i++) console.log('dec SomFy: %d = %d 0x%s 0b%s', i, payload[i], payload[i].toString(16), payload[i].toString(2));
@@ -390,7 +391,7 @@ class SomFyFrame {
     data[1] = data[1] + (cksum & 0x0F);
 
 //debug
-console.log(this);
+//console.log(this);
 //for (let i=0; i<7; i++) console.log('enc SomFy: %d = %d 0x%s 0b%s', i, data[i], data[i].toString(16), data[i].toString(2));
 
 
@@ -425,10 +426,10 @@ console.log(this);
 
     // last half + Footer
     if (lastBit) {
+      this.frame.push(halfSymbolPulse + footPulse1);  // 0
+    } else {
       this.frame.push(halfSymbolPulse);   // 1
       this.frame.push(footPulse1);        // 0
-    } else {
-      this.frame.push(halfSymbolPulse + footPulse1);  // 0
     }
   }
 }

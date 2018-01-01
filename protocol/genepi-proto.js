@@ -17,6 +17,11 @@ class genepiProto extends EventEmitter {
     // listen to messages
     if (receiver) {
       this.on('message', this.notif);
+
+      //TODO: suppr ?
+      this.on('raw', (data) => {
+        console.info('Received %s raw data: %j', this.constructor.name, data);
+      });
     }
   }
 
@@ -95,13 +100,22 @@ class genepiProto extends EventEmitter {
 
       // slider
       case ( (match = /^\[(\d+)\-(\d+)\]$/.exec(action)) && action):
-        if ( isNaN(param.value) || (Number(param.value) < Number(match[1])) || (Number(param.value) > Number(match[2])) ) { throw ('Wrong attribute type for param value:' + param.value + ' - should be ' + action); }
+        if ( isNaN(param.value) || (Number(param.value) < Number(match[1])) || (Number(param.value) > Number(match[2])) )
+          throw ('Wrong attribute type for param value:' + param.value + ' - should be ' + action);
         param.value = Number(param.value);
         break;
 
+      // color
       case 'color':
-        throw ('Unknown action type: ' + action);
-//TODO
+        if (match = /^#([\da-fA-f]{2})([\da-fA-f]{2})([\da-fA-f]{2})$/.exec(param.value)) {
+          param.RGB = {
+            "red"   : parseInt(match[1], 16),
+            "green" : parseInt(match[2], 16),
+            "blue"  : parseInt(match[3], 16)
+          };
+        } else {
+          throw ('Wrong RGB format for action color: ' + param.value);
+        }
         break;
 
       default:

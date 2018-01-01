@@ -168,7 +168,7 @@ class HomeEasy extends genepiProto {
     if (data.isHE) {
       delete data.isHE;
       delete data.frame;
-      console.info('Received %s message: %j', this.constructor.name, data);
+      this.emit('raw', data);
 
       // building message
       let message = {
@@ -261,7 +261,8 @@ class HEframe {
             // tempo
             status = 'soft_sync';
 
-          } else if ( (this.frame[i] < hardPulseMin) || (this.frame[i] > hardPulseMax) ) {
+          } else if (this.frame[i] < hardPulseMin) {
+//          } else if ( (this.frame[i] < hardPulseMin) || (this.frame[i] > hardPulseMax) ) {
             // not hardPulse nor soft -> wrong frame
             return;
           }
