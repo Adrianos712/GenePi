@@ -133,6 +133,11 @@ class Adri extends genepiProto {
         data.cmd   = 'strobe';
         break;
 
+      case 'Fade':
+        data.cmdID = 6;
+        data.cmd   = 'fade';
+        break;
+
     }
 
 
