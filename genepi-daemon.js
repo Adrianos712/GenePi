@@ -152,6 +152,7 @@ const rpcMethod = {
     }
   },
 
+//TODO: subscribe ?
 }
 
 //////////////////////////////  Init HTTP server  //////////////////////////////
@@ -211,6 +212,7 @@ wss.on('connection', function connection(ws, req) {
 //TODO add connection info
 console.info (JSON.stringify(ws, true, 2));
 
+//TODO: add on subscribe ?
   wsClientTable.push(ws);
 
   require('./jsonrpc.js')(ws, ws.send, rpcMethod);
