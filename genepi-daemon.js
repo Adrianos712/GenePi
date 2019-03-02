@@ -6,7 +6,7 @@
 //////////////////////////////  Parsing arguments  //////////////////////////////
 var ArgumentParser = require('argparse').ArgumentParser;
 var parser = new ArgumentParser({
-  version: '0.0.1',
+  version: '1.0.1',
   addHelp:true,
   description: 'GenePi daemon'
 });
@@ -196,7 +196,7 @@ const server = http.createServer(function(req, res) {
 
 
 //////////////////////////////  Init WebSocket  //////////////////////////////
-const WebSocket = require('uws');
+const WebSocket = require('uws-copy');
 const wss = new WebSocket.Server({ server });
 var wsClientTable = [];
 
