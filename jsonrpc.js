@@ -77,6 +77,7 @@ console.info ('[%s]RPC call timeout', id);
 
     } else if (jsonMsg.type === 'request') {
       // RPC request -> find a method handler
+console.info('[%s]request: method %s with param %s', jsonMsg.payload.id, jsonMsg.payload.method, JSON.stringify(jsonMsg.payload.params));
 
       if (typeof conn.rpcMethod[jsonMsg.payload.method] === 'function') {
 //console.info(' [%s]method exists: %s -> handling request', jsonMsg.payload.id, jsonMsg.payload.method);
@@ -128,7 +129,7 @@ console.info(' [%s]not JSON RPC message: %s', jsonMsg.payload.id, message);
 
   conn.on('close', function close() {
     console.info('Closing socket');
-//console.info(ws);
+//console.info(conn);
   });
 }
 

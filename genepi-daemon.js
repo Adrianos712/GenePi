@@ -125,8 +125,6 @@ const rpcMethod = {
   'check': () => 'OK',
 
   'capabilities': () => {
-    console.info('RPC call: method capabilities');
-
     let capa = {};
     Object.keys(protoTable).forEach( (proto) => {
       capa[proto] = protoTable[proto].getCapabilities();
@@ -136,8 +134,6 @@ const rpcMethod = {
 
   'send': async (params) => {
     try {
-      console.info('RPC call: method send with param %j', params);
-
       if (typeof (params.protocol) === 'undefined') {
         throw ('no protocol');
       } else if (typeof (protoTable[params.protocol]) === 'undefined') {
@@ -209,8 +205,8 @@ wss.on('error', function(err) {
 wss.on('connection', function connection(ws, req) {
 
   console.info('New webSocket client connection');
-//TODO add connection info
-console.info (JSON.stringify(ws, true, 2));
+//TODO add connection info - but where is info?
+//console.info (JSON.stringify(ws, true, 2));
 
 //TODO: add on subscribe ?
   wsClientTable.push(ws);
@@ -241,7 +237,7 @@ server.listen(config.daemon.port, function (err) {
 });
 
 
-//TODO: gerer l'envoi par socket
+//TODO: gerer l'envoi par socket (subscribe table)
 function handleNotif (message) {
   console.info ('Got notification: %s', JSON.stringify(message, true, 2));
   wsClientTable.forEach( ws => ws.notify('message', message) );
