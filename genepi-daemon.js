@@ -11,6 +11,13 @@ var parser = new ArgumentParser({
   description: 'GenePi daemon'
 });
 parser.addArgument(
+  [ '-a', '--apikey-file' ],
+  {
+    help: 'Daemon API key file. Default: apikey',
+    defaultValue: __dirname + '/apikey'
+  }
+);
+parser.addArgument(
   [ '-c', '--config-file' ],
   {
     help: 'Daemon configuration file. Default: config.json',
@@ -51,6 +58,7 @@ try {
 }
 
 
+// TODO: MAJ
 ['config.daemon', 'config.daemon.port', 'config.protocol', 'config.hardware'].forEach(function (item) {
   if (typeof eval(item) === 'undefined' ) {
     console.error('param %s not defined in config file', item);
@@ -59,6 +67,23 @@ try {
 });
 
 console.debug('Config: %j', config);
+
+
+//////////////////////////////  Parsing APIkeyg file  //////////////////////////////
+try {
+  var apikey = fs.readFileSync(args.apikey_file, 'utf8');
+} catch (err) {
+  console.error('Error parsing apikey file: %s', err);
+  process.exit(1);
+}
+
+//TODO: verif erreurs
+if (typeof apikey !== 'string') {
+  console.error('APIkey must be a string, got %s', apikey);
+}
+apikey = apikey.replace(/\n$/, '');
+
+console.debug('APIkey: %s', apikey);
 
 
 //////////////////////////////  Init Hard & Proto        //////////////////////////////
@@ -160,8 +185,7 @@ const server = http.createServer(function(req, res) {
   var page = url.parse(req.url).pathname;
   console.debug('Received HTTP request with URL: %s',  page);
 
-//TODO ajout du APIkey
-  if (page == '/') {
+  if (page == '/' + apikey) {
 
     textBody(req, res, function (err, body) {
       // err probably means invalid HTTP protocol or some shiz. 
@@ -181,12 +205,11 @@ const server = http.createServer(function(req, res) {
     });
 
   } else {
-//TODO bad APIkey
-    console.debug('Bad API key - return 401');
+    // Bad API key
     res.statusCode = 401;
-    return res.end('Unauthorized');
+    console.info('Unauthorized: bad Genepi API key');
+    return res.end('Unauthorized: bad Genepi API key');
   }
-
 });
 
 
@@ -205,14 +228,26 @@ wss.on('error', function(err) {
 wss.on('connection', function connection(ws, req) {
 
   console.info('New webSocket client connection');
+  var page = url.parse(req.url).pathname;
+  console.debug('Received HTTP request with URL: %s',  page);
+
+  if (page === '/' + apikey) {
+
 //TODO add connection info - but where is info?
 //console.info (JSON.stringify(ws, true, 2));
 
 //TODO: add on subscribe ?
-  wsClientTable.push(ws);
+    wsClientTable.push(ws);
 
-  require('./jsonrpc.js')(ws, ws.send, rpcMethod);
-  ws.on('message', ws.handleMessage);
+    require('./jsonrpc.js')(ws, ws.send, rpcMethod);
+    ws.on('message', ws.handleMessage);
+
+  } else {
+    // Bad API key
+    console.info('Unauthorized: bad Genepi API key: %s', page);
+    ws.send('Unauthorized: bad Genepi API key: ' + page);
+    ws.close();
+  }
 });
 
 

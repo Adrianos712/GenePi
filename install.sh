@@ -18,7 +18,7 @@ cp -a $install_path $genepi_dir
 
 
 echo Generating apikey
-cat /proc/sys/kernel/random/uuid > $apikey_file
+cat /proc/sys/kernel/random/uuid | sed -r 's/-//g' | tr [a-z] [A-Z] > $apikey_file
 chmod 400 $apikey_file
 
 
