@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://cabalou@github.com/cabalou/genepi.git"
+    "url": "git+https://github.com/adrianos712/genepi.git"
   },
   "keywords": [
     "GPIO",
@@ -19,12 +19,12 @@
     "HomeEasy",
     "SomFy"
   ],
-  "author": "Adrien Caillard",
+  "author": "Adrianos",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/cabalou/genepi/issues"
+    "url": "https://github.com/adrianos712/genepi/issues"
   },
-  "homepage": "https://github.com/cabalou/genepi#readme",
+  "homepage": "https://github.com/adrianos712/genepi#readme",
   "dependencies": {
     "argparse": "^1.0.10",
     "body": "^5.1.0",
