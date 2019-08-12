@@ -215,7 +215,7 @@ const server = http.createServer(function(req, res) {
 
 
 //////////////////////////////  Init WebSocket  //////////////////////////////
-const WebSocket = require('uws-copy');
+const WebSocket = require('ws');
 const wss = new WebSocket.Server({ server });
 var wsClientTable = [];
 
