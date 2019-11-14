@@ -23,13 +23,11 @@
     "hardware": {
         "GPIO": {
             "433.92": {
-                "TXpin": 17,
-                "TXpinb": 26,
-                "RXpinb": 19,
-                "RXpin": 22
+                "TXpin": 3,
+                "RXpin": 4
             },
             "433.42": {
-                "TXpin": 27
+                "TXpin": 2
             }
         },
         "NRF": {
