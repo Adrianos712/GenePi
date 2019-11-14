@@ -8,17 +8,20 @@ fi
 genepi_dir=/opt/genepi/
 apikey_file=${genepi_dir}apikey
 install_path=$(dirname $0)/
-exit 0
 
+#apt install nodejs npm
 
 echo Installing genepi to $install_path
 rm -r $genepi_dir
 mkdir -p $genepi_dir
 cp -a $install_path $genepi_dir
 
+pushd $genepi_dir
+sudo -u pi npm install
+popd
 
 echo Generating apikey
-cat /proc/sys/kernel/random/uuid | sed -r 's/-//g' | tr [a-z] [A-Z] > $apikey_file
+sudo -u pi cat /proc/sys/kernel/random/uuid | sed -r 's/-//g' | tr [a-z] [A-Z] > $apikey_file
 chmod 400 $apikey_file
 
 
@@ -51,9 +54,10 @@ EOF
 
 echo Configuring rsyslog
 cat > /etc/rsyslog.d/genepi.conf <<EOF
-if $programname == 'genepi' then /var/log/genepi.log
-if $programname == 'genepi' then ~
+if \$programname == 'genepi' then /var/log/genepi.log
+if \$programname == 'genepi' then stop
 EOF
+systemctl restart rsyslog
 
 # tester si utile
 #cat >/etc/udev/rules.d/20-gpiomem.rules <<EOF
