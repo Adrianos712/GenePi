@@ -95,6 +95,10 @@ class Adri extends genepiProto {
         data.blue  = param.RGB.blue;
 
         res.cmd.RGB = { "state": param.value };
+
+        if (data.red === 0 && data.green === 0 && data.blue === 0)
+          res.cmd.Power.state = 0;
+
         if (data.unit)
           res.cmd.RGB.unit = data.unit;
         break;
@@ -105,6 +109,10 @@ class Adri extends genepiProto {
         data.bright = param.value;
 
         res.cmd.Brightness = { "state": param.value };
+
+        if (data.bright === 0)
+          res.cmd.Power.state = 0;
+
         if (data.unit)
           res.cmd.Brightness.unit = data.unit;
         break;
